@@ -6,9 +6,10 @@
 #include <SPI.h>
 #include <Ethernet2.h>
 
-const char server[] = "https://hydroponics.eu-gb.mybluemix.net";
-const byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
-const int port = 6001;
+char server[] = "https://hydroponics.eu-gb.mybluemix.net";
+byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
+int port = 6001;
+IPAddress ip(192, 168, 0, 21);
 
 EthernetClient client;
 
