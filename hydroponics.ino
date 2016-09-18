@@ -3,6 +3,8 @@
 
 #include "MG811.h"
 #include "DHT11.h"
+#include "SEN0161.h"
+#include "DFR0300.h"
 #include "Sensor.h"
 
 
@@ -46,6 +48,10 @@ void loop()
       case 1: Serial.print("CO2: "); break;
       case 2: Serial.print("T: "); break;
       case 3: Serial.print("Hum: "); break;
+      case 4: Serial.print("Ph: "); break;
+      case 5: Serial.print("Ec: "); break;
+      case 6: Serial.print("Water T: "); break;
+      case 7: Serial.print("Light: "); break;
     }
     uint8_t errorCode = s->read();
     switch (errorCode)

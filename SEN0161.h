@@ -48,7 +48,7 @@ public:
 
   float getData()
   {
-    return source->_phValue;
+    return _phValue;
   }
 
 private:
