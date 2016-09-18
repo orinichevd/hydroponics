@@ -1,6 +1,6 @@
 #include "Sensor.h"
 
-
+//Air temperature
 class SensorDHT11_T : public Sensor
 {
   public:
@@ -108,6 +108,7 @@ class SensorDHT11_T : public Sensor
     uint8_t readResult;
 };
 
+//Air humidity
 class SensorDHT11_Hum: public Sensor
 {
   public:
