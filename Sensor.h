@@ -7,6 +7,7 @@
 #define S_OUT_OF_RANGE   1
 #define S_ERROR_CHECKSUM 2
 #define S_ERROR_TIMEOUT  3
+#define S_NOT_RECOGNIZED 4
 
 class Sensor 
 {
