@@ -91,7 +91,7 @@ class SensorDS18B20 : public Sensor
       convert();
     }
 
-    float getData()
+    uint8_t read()
     {
       byte data[12];
       byte present = ds->reset();
@@ -113,6 +113,11 @@ class SensorDS18B20 : public Sensor
       _temperature = tempRead / 16;
       convert();
       return S_OK;
+    }
+    
+    float getData() 
+    {
+      return _temperature;
     }
 
     void convert()

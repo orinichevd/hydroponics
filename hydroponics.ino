@@ -10,7 +10,7 @@
 
 /************************Server configuration*********|***************************/
 const char server[] = "https://hydroponics.eu-gb.mybluemix.net";
-byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
+byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
 const int port = 6001;
 
 EthernetClient client;
@@ -26,10 +26,9 @@ void setup()
   }
   delay(1000);
   Serial.println("Serial started");
-  sensors[0] = new SensorMG811(0, 2, 1, 1);
-  SensorDHT11_T* DHT11 = new SensorDHT11_T(5, 2, 2);
-  sensors[1] = DHT11;
-  sensors[2] = new SensorDHT11_Hum(DHT11, 3, 3);
+  sensors[0] = new SensorSEN0161(0, 1, 4);//ph
+  sensors[1] = new SensorDS18B20(1, 2, 6);//water t
+  sensors[2] = new SensorDFR0300(2, sensors[1], 3, 7);//ec
   for (int i = 0; i < sensorCount; i++) {
     sensors[i]->init();
   }
