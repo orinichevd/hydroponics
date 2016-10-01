@@ -1,17 +1,16 @@
 #include <SPI.h>
 #include <Ethernet2.h>
 
-#include "MG811.h"
-#include "DHT11.h"
+
 #include "SEN0161.h"
 #include "DFR0300.h"
 #include "Sensor.h"
 
 
 /************************Server configuration*********|***************************/
-const char server[] = "https://hydroponics.eu-gb.mybluemix.net";
-byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
-const int port = 6001;
+const char server[] = "https://Hydroponics.eu-gb.mybluemix.net";
+byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
+const int port = 80;
 
 EthernetClient client;
 
@@ -26,14 +25,16 @@ void setup()
   }
   delay(1000);
   Serial.println("Serial started");
-  sensors[0] = new SensorMG811(0, 2, 1, 1);
-  SensorDHT11_T* DHT11 = new SensorDHT11_T(5, 2, 2);
-  sensors[1] = DHT11;
-  sensors[2] = new SensorDHT11_Hum(DHT11, 3, 3);
+  sensors[0] = new SensorSEN0161(0, 1, 4);//ph
+  sensors[1] = new SensorDS18B20(A1, 2, 6);//water t
+  sensors[2] = new SensorDFR0300(2, sensors[1], 3, 5);//ec
   for (int i = 0; i < sensorCount; i++) {
     sensors[i]->init();
   }
-  Ethernet.begin(mac);
+  if (!Ethernet.begin(mac)) 
+  {
+    Serial.println("Ethernet not started");
+  }
   Serial.println("Setup done");
 }
 
@@ -79,7 +80,7 @@ void loop()
   }
 
   //send data to server
-  //sendDataToServer(&data);
+  sendDataToServer(&data);
 
 
   delay(5000);
@@ -99,13 +100,18 @@ void sendDataToServer(String* data) {
   //renew connection
   client.stop();
   if (client.connect(server, port)) {
-    client.println("POST /hydro HTTP/1.1");
-    client.println("Host: 192.168.0.21:6001");
+    client.println("POST /sensorInput HTTP/1.1");
+    client.println("Host: hydroponics.eu-gb.mybluemix.net");
     client.println("Content-Type: text/csv");
     client.print("Content-Length: ");
     client.println((*data).length());
     client.println();
     client.println((*data));
+    Serial.println(*data);
+  }
+  else 
+  {
+    Serial.println("can't connect to server");
   }
   client.stop();
 }
