@@ -1,10 +1,6 @@
 #define DEBUG_SERIAL
 #define BUILD_AIR
 
-#if defined(BUILD_SHELF1) || defined(BUILD_SHELF1)
-#define BUILD_SHELF
-#endif
-
 #include <SPI.h>
 #include <Ethernet2.h>
 
@@ -22,10 +18,10 @@ const int port = 80;
 #ifdef BUILD_AIR
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
 #endif
-#ifdef BUILD_WATER1
+#ifdef BUILD_SHELF1
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
 #endif
-#ifdef BUILD_WATER2
+#ifdef BUILD_SHELF2
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
 #endif
 
@@ -50,7 +46,7 @@ void setup()
   sensors[1] = airSensor;//air t
   sensors[2] = new SensorDHT11_Hum(airSensor, 3);// air hum
 #endif
-#ifdef BUILD_SHELF
+#ifdef BUILD_SHELF1
   //shelf configuration
   sensors[0] = new SensorSEN0161(0, 1, 4);//ph
   sensors[1] = new SensorDS18B20(A1, 2, 6);//water t
