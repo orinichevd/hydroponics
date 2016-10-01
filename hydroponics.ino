@@ -1,4 +1,5 @@
-#define DEBUG_SERIAL
+//#define DEBUG_SERIAL
+#define DEBUG_ETHRNET
 #define BUILD_AIR
 
 #include <SPI.h>
@@ -12,7 +13,7 @@
 #include "Sensor.h"
 
 
-const char server[] = "https://Hydroponics.eu-gb.mybluemix.net";
+const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
 
 #ifdef BUILD_AIR
@@ -143,7 +144,7 @@ void sendDataToServer(String *data)
   if (client.connect(server, port))
   {
     client.println("POST /sensorInput HTTP/1.1");
-    client.println("Host: hydroponics.eu-gb.mybluemix.net");
+    client.println("Host: hydroponics.vo-it.ru");
     client.println("Content-Type: text/csv");
     client.print("Content-Length: ");
     client.println((*data).length());

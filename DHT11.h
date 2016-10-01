@@ -108,7 +108,7 @@ class SensorDHT11_T : public Sensor
         {
           readResult = S_ERROR_CHECKSUM;
         }
-      } while (false)
+      } while (false);
       return readResult;
     }
 
