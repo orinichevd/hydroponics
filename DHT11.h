@@ -97,7 +97,7 @@ public:
       return S_ERROR_CHECKSUM;
     }
     readResult = S_OK;
-    return S_OK;
+    return readResult;
   }
 
   float getData()

@@ -1,4 +1,9 @@
 #define DEBUG_SERIAL
+#define BUILD_AIR
+
+#if defined(BUILD_SHELF1) || defined(BUILD_SHELF1)
+#define BUILD_SHELF
+#endif
 
 #include <SPI.h>
 #include <Ethernet2.h>
@@ -10,10 +15,20 @@
 #include "DFR0300.h"
 #include "Sensor.h"
 
-/************************Server configuration*********|***************************/
+
 const char server[] = "https://Hydroponics.eu-gb.mybluemix.net";
-byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
 const int port = 80;
+
+#ifdef BUILD_AIR
+byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
+#endif
+#ifdef BUILD_WATER1
+byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
+#endif
+#ifdef BUILD_WATER2
+byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
+#endif
+
 
 EthernetClient client;
 
@@ -29,14 +44,18 @@ void setup()
   }
   delay(1000);
   Serial.println("Serial started");
-  //air configuration
-  sensors[0] = new SensorMG811(A0, 2, 1);
-  sensors[1] = new SensorDHT11_T(5, 2);
-  sensors[2] = new SensorDHT11_Hum(sensors[1], 3);
+#ifdef BUILD_AIR
+  sensors[0] = new SensorMG811(A0, 2, 1);//co2
+  SensorDHT11_T* airSensor = new SensorDHT11_T(5, 2);
+  sensors[1] = airSensor;//air t
+  sensors[2] = new SensorDHT11_Hum(airSensor, 3);// air hum
+#endif
+#ifdef BUILD_SHELF
   //shelf configuration
-  /* sensors[0] = new SensorSEN0161(0, 1, 4);//ph
+  sensors[0] = new SensorSEN0161(0, 1, 4);//ph
   sensors[1] = new SensorDS18B20(A1, 2, 6);//water t
-  sensors[2] = new SensorDFR0300(2, sensors[1], 3, 5);//ec*/
+  sensors[2] = new SensorDFR0300(2, sensors[1], 3, 5);//ec
+#endif
   for (int i = 0; i < sensorCount; i++)
   {
     sensors[i]->init();
