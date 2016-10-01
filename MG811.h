@@ -11,7 +11,7 @@
 /**********************Application Related Macros**********************************/
 //These values differ from sensor to sensor. User should derermine this value.
 #define ZERO_POINT_X 2.602       //lg400=2.602, the start point_on X_axis of the curve
-#define ZERO_POINT_VOLTAGE 0.324 //define the output of the sensor in volts when the concentration of CO2 is 400PPM
+#define ZERO_POINT_VOLTAGE 0.398 //define the output of the sensor in volts when the concentration of CO2 is 400PPM
 #define MAX_POINT_VOLTAGE 0.265  //define the output of the sensor in volts when the concentration of CO2 is 10,000PPM
 #define REACTION_VOLTGAE 0.059   //define the voltage drop of the sensor when move the sensor from air into 1000ppm CO2
 
@@ -27,12 +27,13 @@ float CO2Curve[3] = {ZERO_POINT_X, ZERO_POINT_VOLTAGE, (REACTION_VOLTGAE / (2.60
 class SensorMG811 : public Sensor
 {
 public:
-  SensorMG811(uint8_t analogPin, uint8_t digitalPin, uint8_t sensorId, uint8_t sensorPId)
+  SensorMG811(uint8_t analogPin, uint8_t digitalPin, uint8_t sensorId)
   {
     _analogPin = analogPin;
     _digitalPin = digitalPin;
     _sId = sensorId;
-    _pId = sensorPId;
+    _type = S_TYPE_CO2;
+    _model = "MG811";
   }
 
   void init()

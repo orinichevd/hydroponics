@@ -12,7 +12,8 @@ class SensorDFR0300 : public Sensor
     {
       _analogPin = analogPin;
       _sId = sensorId;
-      _pId = sensorPId;
+      _type = S_TYPE_EC;
+      _model = "DS18B20";
       this->temperatureSensor = temperatureSensor;
     }
 
@@ -82,7 +83,8 @@ class SensorDS18B20 : public Sensor
     {
       _oneWirePin = oneWirePin;
       _sId = sensorId;
-      _pId = sensorPId;
+      _type = S_TYPE_T_WATER;
+      _model = "DS18B20";
       ds = new OneWire(oneWirePin);
     }
 

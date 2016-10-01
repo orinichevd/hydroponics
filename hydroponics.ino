@@ -1,11 +1,14 @@
+#define DEBUG_SERIAL
+
 #include <SPI.h>
 #include <Ethernet2.h>
 
+#include "MG811.h"
+#include "DHT11.h"
 
 #include "SEN0161.h"
 #include "DFR0300.h"
 #include "Sensor.h"
-
 
 /************************Server configuration*********|***************************/
 const char server[] = "https://Hydroponics.eu-gb.mybluemix.net";
@@ -14,28 +17,37 @@ const int port = 80;
 
 EthernetClient client;
 
-Sensor** sensors = new Sensor*[3];
+Sensor **sensors = new Sensor *[3];
 const unsigned int sensorCount = 3;
 
 void setup()
 {
   Serial.begin(9600);
-  while (!Serial) {
+  while (!Serial)
+  {
     ;
   }
   delay(1000);
   Serial.println("Serial started");
-  sensors[0] = new SensorSEN0161(0, 1, 4);//ph
+  //air configuration
+  sensors[0] = new SensorMG811(A0, 2, 1);
+  sensors[1] = new SensorDHT11_T(5, 2);
+  sensors[2] = new SensorDHT11_Hum(sensors[1], 3);
+  //shelf configuration
+  /* sensors[0] = new SensorSEN0161(0, 1, 4);//ph
   sensors[1] = new SensorDS18B20(A1, 2, 6);//water t
-  sensors[2] = new SensorDFR0300(2, sensors[1], 3, 5);//ec
-  for (int i = 0; i < sensorCount; i++) {
+  sensors[2] = new SensorDFR0300(2, sensors[1], 3, 5);//ec*/
+  for (int i = 0; i < sensorCount; i++)
+  {
     sensors[i]->init();
   }
-  if (!Ethernet.begin(mac)) 
+#ifndef DEBUG_SERIAL
+  if (!Ethernet.begin(mac))
   {
     Serial.println("Ethernet not started");
   }
   Serial.println("Setup done");
+#endif
 }
 
 void loop()
@@ -44,62 +56,77 @@ void loop()
 
   for (int i = 0; i < sensorCount; i++)
   {
-    Sensor* s = sensors[i];
-    switch (s->getPId()) {
-      case 1: Serial.print("CO2: "); break;
-      case 2: Serial.print("T: "); break;
-      case 3: Serial.print("Hum: "); break;
-      case 4: Serial.print("Ph: "); break;
-      case 5: Serial.print("Ec: "); break;
-      case 6: Serial.print("Water T: "); break;
-      case 7: Serial.print("Light: "); break;
+    Sensor *s = sensors[i];
+    switch (s->getType())
+    {
+    case S_TYPE_CO2:
+      Serial.print("CO2: ");
+      break;
+    case S_TYPE_T_AIR:
+      Serial.print("T: ");
+      break;
+    case S_TYPE_HUMIDITY:
+      Serial.print("Hum: ");
+      break;
+    case S_TYPE_PH:
+      Serial.print("Ph: ");
+      break;
+    case S_TYPE_EC:
+      Serial.print("Ec: ");
+      break;
+    case S_TYPE_T_WATER:
+      Serial.print("Water T: ");
+      break;
+    case S_TYPE_LIGHT:
+      Serial.print("Light: ");
+      break;
     }
     uint8_t errorCode = s->read();
-    switch (errorCode)
+    float sensorData;
+    if (errorCode == S_OK)
     {
-      case S_OK :
-        {
-          float sensorData = s->getData();
-          addSensorInfoToData(&data, s->getSId(), s->getPId(), errorCode, sensorData);
-          Serial.println(sensorData);
-        }
-        break;
+      sensorData = s->getData();
+      Serial.println(sensorData);
+    }
+    else
+    {
+      sensorData = 0;
+      switch (errorCode)
+      {
       case S_OUT_OF_RANGE:
-        addSensorInfoToData(&data, s->getSId(), s->getPId(), errorCode, 0);
         Serial.println("out of range");
         break;
       case S_ERROR_CHECKSUM:
-        addSensorInfoToData(&data, s->getSId(), s->getPId(), errorCode, 0);
         Serial.println("checksum error");
         break;
       case S_ERROR_TIMEOUT:
-        addSensorInfoToData(&data, s->getSId(), s->getPId(), errorCode, 0);
         Serial.println("timeout error");
         break;
+      }
     }
+    addSensorInfoToData(&data, s->getSId(), s->getType(), s->getModel(), errorCode, sensorData);
   }
 
   //send data to server
+#ifndef DEBUG_SERIAL
   sendDataToServer(&data);
-
-
+#endif
   delay(5000);
 }
 
-void addSensorInfoToData( String* data
-                          , uint8_t sensorId
-                          , uint8_t sensorPId
-                          , uint8_t errorCode
-                          , float value) {
-  *data = *data + String(sensorId) + ',' + String(sensorPId) + ',' + String(errorCode) + ',' + String(value) + "\r\n";
+void addSensorInfoToData(String *data, uint8_t sensorId, uint8_t type, String model, uint8_t errorCode, float value)
+{
+  *data = *data + String(sensorId) + ',' + String(type) + ',' + String(model) + ',' + String(errorCode) + ',' + String(value) + "\r\n";
 }
 
-void sendDataToServer(String* data) {
+void sendDataToServer(String *data)
+{
   // start the Ethernet connection:
   Ethernet.maintain();
   //renew connection
   client.stop();
-  if (client.connect(server, port)) {
+  if (client.connect(server, port))
+  {
     client.println("POST /sensorInput HTTP/1.1");
     client.println("Host: hydroponics.eu-gb.mybluemix.net");
     client.println("Content-Type: text/csv");
@@ -109,11 +136,9 @@ void sendDataToServer(String* data) {
     client.println((*data));
     Serial.println(*data);
   }
-  else 
+  else
   {
     Serial.println("can't connect to server");
   }
   client.stop();
 }
-
-
