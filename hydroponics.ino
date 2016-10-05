@@ -1,4 +1,4 @@
-//#define DEBUG_SERIAL
+#define DEBUG_SERIAL
 #define DEBUG_ETHRNET
 #define BUILD_AIR
 
@@ -20,8 +20,9 @@
 
 #ifdef DEBUG
 const int period = 5000;
-#else
-const int perion = 60000;
+#endif
+#ifndef DEBUG
+const int period = 60000;
 #endif
 
 const char server[] = "hydroponics.vo-it.ru";
