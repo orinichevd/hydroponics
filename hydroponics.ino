@@ -1,6 +1,10 @@
 //#define DEBUG_SERIAL
-//#define DEBUG_ETHRNET
+#define DEBUG_ETHRNET
 #define BUILD_AIR
+
+#if defined(DEBUG_ETHERNET) || defined(DEBUG_SERIAL)
+#define DEBUG
+#endif
 
 #include <SPI.h>
 #include <Ethernet2.h>
@@ -14,6 +18,11 @@
 //#include "BH1750.h"
 #include "Sensor.h"
 
+#ifdef DEBUG
+const int period = 5000;
+#else
+const int perion = 60000;
+#endif
 
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
@@ -135,7 +144,7 @@ void loop()
 #ifndef DEBUG_SERIAL
   sendDataToServer(&data);
 #endif
-  delay(60000);
+  delay(period);
 }
 
 void addSensorInfoToData(String *data, uint8_t sensorId, uint8_t type, String model, uint8_t errorCode, float value)
