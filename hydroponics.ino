@@ -1,6 +1,6 @@
-#define DEBUG_SERIAL
+//#define DEBUG_SERIAL
 //#define DEBUG_ETHRNET
-#define BUILD_SHELF1
+#define BUILD_AIR
 
 #include <SPI.h>
 #include <Ethernet2.h>
@@ -11,7 +11,7 @@
 
 #include "SEN0161.h"
 #include "DFR0300.h"
-#include "BH1750.h"
+//#include "BH1750.h"
 #include "Sensor.h"
 
 
@@ -20,27 +20,32 @@ const int port = 80;
 
 #ifdef BUILD_AIR
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
+byte aId = 0x01;
 #endif
 #ifdef BUILD_SHELF1
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
+byte aId = 0x02;
 #endif
 #ifdef BUILD_SHELF2
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
+byte aId = 0x03;
 #endif
 
 
 EthernetClient client;
 
-Sensor **sensors = new Sensor *[1];
-const unsigned int sensorCount = 1;
+Sensor **sensors = new Sensor *[3];
+const unsigned int sensorCount = 3;
 
 void setup()
 {
   Serial.begin(9600);
+#ifdef DEBUG_SERIAL
   while (!Serial)
   {
     ;
   }
+#endif
   delay(1000);
   Serial.println("Serial started");
 #ifdef BUILD_AIR
@@ -50,7 +55,7 @@ void setup()
   sensors[2] = new SensorDHT11_Hum(airSensor, 3);// air hum
 #endif
 #ifdef BUILD_SHELF1
-  
+
   sensors[0] = new SensorBH1750(7, BH1750_CONTINUOUS_HIGH_RES_MODE);
   //sensors[0] = new SensorSEN0161(0, 1, 4);//ph
   //sensors[1] = new SensorDS18B20(A1, 2, 6);//water t
@@ -130,7 +135,7 @@ void loop()
 #ifndef DEBUG_SERIAL
   sendDataToServer(&data);
 #endif
-  delay(5000);
+  delay(60000);
 }
 
 void addSensorInfoToData(String *data, uint8_t sensorId, uint8_t type, String model, uint8_t errorCode, float value)

@@ -1,6 +1,6 @@
 #include "Sensor.h"
 #include <Wire.h>
-#include <I2cMaster.h>
+#include "I2cMaster.h"
 
 #define BH1750_I2CADDR 0x23
 
@@ -52,16 +52,15 @@ public:
 
   void init()
   {
-    Wire.begin();
-    Wire.beginTransmission(_address);
-    Wire.write(_mode);
-    Wire.endTransmission();
     if (_digitalPin != BH1750_ADDR_PIN_LOW)
     {
       pinMode(_digitalPin, OUTPUT);
       digitalWrite(_digitalPin, HIGHT);
     }
-    ���� ����
+    Wire.begin();
+    Wire.beginTransmission(_address);
+    Wire.write(_mode);
+    Wire.endTransmission();
   }
 
   uint8_t read()
@@ -113,7 +112,7 @@ public:
   {
     _sdaPin = sdaPin;
     _sclPin = sclPin
-        _digitalPin = _digitalPin;
+        _digitalPin = digitalPin;
     _address = address;
     _sId = sensorId;
     _type = S_TYPE_LIGHT;
@@ -123,43 +122,33 @@ public:
 
   void init()
   {
-    Wire.begin();
-    Wire.beginTransmission(_address);
-    Wire.write(_mode);
-    Wire.endTransmission();
     if (_digitalPin != BH1750_ADDR_PIN_LOW)
     {
       pinMode(_digitalPin, OUTPUT);
       digitalWrite(_digitalPin, HIGHT);
     }
+    wire = new SoftI2cMaster(_sdaPin, _sclPin);
+    wire.start(_address | I2C_WRITE);
+    wire.write(_mode);
+    wire.stop();
   }
 
   uint8_t read()
   {
     uint8_t result = S_OK;
     uint16_t level;
-    Wire.beginTransmission(_address);
+    wire.start(_address | I2C_READ);
     Wire.requestFrom(_address, 2);
 
     byte buff[2];
     int i = 0;
-    while (Wire.available())
+    for (uint8_t i = 0; i < 2; i++)
     {
-      buff[i] = Wire.read();
-      i++;
+      buff[i] = wire.read(i == 1);
     }
-    Wire.endTransmission();
-    Serial.print(i);
+    wire.stop();
 
-    if (i == 2)
-    {
-      _value = ((buff[0] << 8) | buff[1]) / 1.2;
-    }
-    else
-    {
-      _value = 0;
-      result = S_OUT_OF_RANGE;
-    }
+    _value = ((buff[0] << 8) | buff[1]) / 1.2;
 
     return result;
   }
@@ -170,7 +159,7 @@ public:
   }
 
 private:
-  SoftI2cMaster *rtc;
+  SoftI2cMaster *wire;
   uint8_t _sdaPin, _sclPin;
   uint8_t _digitalPin;
   float _value;

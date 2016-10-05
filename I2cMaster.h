@@ -57,12 +57,36 @@ uint8_t const TWSR_MTX_DATA_ACK = 0x28;
 /** slave address plus read bit transmitted, ACK received */
 uint8_t const TWSR_MRX_ADR_ACK = 0x40;
 
---------------------------------------------------------------------
+class I2cMasterBase {
+ public:
+  /** Read a byte
+   * \param[in] last send Ack if last is false else Nak to terminate read
+   * \return byte read from I2C bus
+   */
+  virtual uint8_t read(uint8_t last) = 0;
+  /** Send new address and read/write bit without sending a stop.
+   * \param[in] addressRW i2c address with read/write bit
+   * \return true for success false for failure
+   */
+  virtual bool restart(uint8_t addressRW) = 0;
+  /** Issue a start condition
+   * \param[in] addressRW i2c address with read/write bit
+   * \return true for success false for failure
+   */
+  virtual bool start(uint8_t addressRW) = 0;
+  /** Issue a stop condition. */
+  virtual void stop(void) = 0;
+  /** Write a byte
+   * \param[in] data byte to write
+   * \return true for Ack or false for Nak */
+  virtual bool write(uint8_t data) = 0;
+};
 /**
  * \class SoftI2cMaster
  * \brief Software I2C master class
  */
-class SoftI2cMaster : public I2cMasterBase {
+class SoftI2cMaster : public I2cMasterBase
+{
  public:
   SoftI2cMaster(uint8_t sdaPin, uint8_t sclPin);
   uint8_t read(uint8_t last);

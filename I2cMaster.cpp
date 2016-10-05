@@ -17,7 +17,7 @@
  * along with the Arduino I2cMaster Library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include <I2cMaster.h>
+#include "I2cMaster.h"
 //==============================================================================
 // WARNING don't change SoftI2cMaster unless you verify the change with a scope
 //------------------------------------------------------------------------------
