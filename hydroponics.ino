@@ -1,6 +1,8 @@
-//#define DEBUG_SERIAL
-#define DEBUG_ETH
-#define BUILD_AIR
+#define DEBUG_SERIAL
+//#define DEBUG_ETH
+
+//#define BUILD_AIR
+#define BUILD_SHELF1
 
 #if defined(DEBUG_ETH) || defined(DEBUG_SERIAL)
 #define DEBUG
@@ -15,7 +17,7 @@
 
 #include "SEN0161.h"
 #include "DFR0300.h"
-//#include "BH1750.h"
+#include "BH1750.h"
 #include "Sensor.h"
 
 
@@ -41,8 +43,16 @@ byte aId = 0x03;
 
 EthernetClient client;
 
+#if defined(BUILD_AIR)
 Sensor **sensors = new Sensor *[3];
 const unsigned int sensorCount = 3;
+#elif defined(BUILD_SHELF1)
+Sensor **sensors = new Sensor *[2];
+const unsigned int sensorCount = 2;
+#elif defined(BUILD_SHELF2)
+Sensor **sensors = new Sensor *[3];
+const unsigned int sensorCount = 3;
+#endif
 
 void setup()
 {
@@ -73,7 +83,8 @@ void setup()
   sensors[2] = new SensorDHT11_Hum(airSensor, 3);// air hum
 #endif
 #ifdef BUILD_SHELF1
-  sensors[0] = new SensorBH1750(7, BH1750_CONTINUOUS_HIGH_RES_MODE);
+  sensors[0] = new SensorBH1750(0X23, 4, BH1750_CONTINUOUS_HIGH_RES_MODE);
+  sensors[1] = new SensorBH1750(0X5C, 5, BH1750_CONTINUOUS_HIGH_RES_MODE);
   //sensors[0] = new SensorSEN0161(0, 1, 4);//ph
   //sensors[1] = new SensorDS18B20(A1, 2, 6);//water t
   //sensors[2] = new SensorDFR0300(2, sensors[1], 3, 5);//ec
@@ -135,8 +146,9 @@ void loop()
 
   digitalWrite(13, LOW);
   //send data to server
-
+#ifndef DEBUG_SERIAL
   sendDataToServer(&data);
+#endif
 
 
   delay(period);
