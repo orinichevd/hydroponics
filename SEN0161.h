@@ -56,3 +56,4 @@ class SensorSEN0161 : public Sensor
     uint8_t _analogPin;
     float _phValue;
 };
+

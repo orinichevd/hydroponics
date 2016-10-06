@@ -130,3 +130,4 @@ bool SoftI2cMaster::write(uint8_t data) {
   digitalWrite(sdaPin_, LOW);
   return rtn == 0;
 }
+

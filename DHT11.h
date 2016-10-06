@@ -153,3 +153,4 @@ class SensorDHT11_Hum : public Sensor
   private:
     SensorDHT11_T *source;
 };
+

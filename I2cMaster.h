@@ -101,3 +101,4 @@ class SoftI2cMaster : public I2cMasterBase
 };
 
 #endif  // I2C_MASTER_H
+

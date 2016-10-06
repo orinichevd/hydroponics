@@ -151,3 +151,4 @@ class SensorDS18B20 : public Sensor
     byte addr[8];
     OneWire* ds;
 };
+

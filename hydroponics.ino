@@ -1,8 +1,8 @@
-#define DEBUG_SERIAL
-#define DEBUG_ETHRNET
+//#define DEBUG_SERIAL
+#define DEBUG_ETH
 #define BUILD_AIR
 
-#if defined(DEBUG_ETHERNET) || defined(DEBUG_SERIAL)
+#if defined(DEBUG_ETH) || defined(DEBUG_SERIAL)
 #define DEBUG
 #endif
 
@@ -18,12 +18,10 @@
 //#include "BH1750.h"
 #include "Sensor.h"
 
-#ifdef DEBUG
-const int period = 5000;
-#endif
-#ifndef DEBUG
-const int period = 60000;
-#endif
+
+
+unsigned long period = 5000;
+
 
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
@@ -41,7 +39,6 @@ byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
 byte aId = 0x03;
 #endif
 
-
 EthernetClient client;
 
 Sensor **sensors = new Sensor *[3];
@@ -49,15 +46,26 @@ const unsigned int sensorCount = 3;
 
 void setup()
 {
+#ifdef DEBUG
+  period = 5000;
+#else
+  period = 60000;
+#endif
+
   Serial.begin(9600);
+
+
+
 #ifdef DEBUG_SERIAL
   while (!Serial)
   {
     ;
   }
-#endif
   delay(1000);
   Serial.println("Serial started");
+#endif
+
+
 #ifdef BUILD_AIR
   sensors[0] = new SensorMG811(A0, 2, 1);//co2
   SensorDHT11_T* airSensor = new SensorDHT11_T(5, 2);
@@ -65,56 +73,40 @@ void setup()
   sensors[2] = new SensorDHT11_Hum(airSensor, 3);// air hum
 #endif
 #ifdef BUILD_SHELF1
-
   sensors[0] = new SensorBH1750(7, BH1750_CONTINUOUS_HIGH_RES_MODE);
   //sensors[0] = new SensorSEN0161(0, 1, 4);//ph
   //sensors[1] = new SensorDS18B20(A1, 2, 6);//water t
   //sensors[2] = new SensorDFR0300(2, sensors[1], 3, 5);//ec
 #endif
+
   for (int i = 0; i < sensorCount; i++)
   {
     sensors[i]->init();
   }
+
 #ifndef DEBUG_SERIAL
   if (!Ethernet.begin(mac))
   {
     Serial.println("Ethernet not started");
   }
-  Serial.println("Setup done");
 #endif
+
+  Serial.println("Setup done");
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
 }
 
 void loop()
 {
+  digitalWrite(13, HIGH);
   String data;
 
   for (int i = 0; i < sensorCount; i++)
   {
     Sensor *s = sensors[i];
-    switch (s->getType())
-    {
-      case S_TYPE_CO2:
-        Serial.print("CO2: ");
-        break;
-      case S_TYPE_T_AIR:
-        Serial.print("T: ");
-        break;
-      case S_TYPE_HUMIDITY:
-        Serial.print("Hum: ");
-        break;
-      case S_TYPE_PH:
-        Serial.print("Ph: ");
-        break;
-      case S_TYPE_EC:
-        Serial.print("Ec: ");
-        break;
-      case S_TYPE_T_WATER:
-        Serial.print("Water T: ");
-        break;
-      case S_TYPE_LIGHT:
-        Serial.print("Light: ");
-        break;
-    }
+
+    printSensorType(s->getType());
+
     uint8_t errorCode = s->read();
     float sensorData;
     if (errorCode == S_OK)
@@ -141,10 +133,12 @@ void loop()
     addSensorInfoToData(&data, s->getSId(), s->getType(), s->getModel(), errorCode, sensorData);
   }
 
+  digitalWrite(13, LOW);
   //send data to server
-#ifndef DEBUG_SERIAL
+
   sendDataToServer(&data);
-#endif
+
+
   delay(period);
 }
 
@@ -155,8 +149,43 @@ void addSensorInfoToData(String *data, uint8_t sensorId, uint8_t type, String mo
 
 void sendDataToServer(String *data)
 {
-  // start the Ethernet connection:
-  Ethernet.maintain();
+  if (Ethernet.gatewayIP() == NULL)
+  {
+    digitalWrite(13, LOW);
+    delay(100);
+    digitalWrite(13, HIGH);
+    delay(100);
+    digitalWrite(13, LOW);
+    delay(100);
+    digitalWrite(13, HIGH);
+    delay(100);
+    digitalWrite(13, LOW);
+    delay(100);
+    digitalWrite(13, HIGH);
+    delay(100);
+    digitalWrite(13, LOW);
+    Serial.println("no gateway");
+    !Ethernet.begin(mac);
+
+
+
+  }
+  else
+  {
+    // start the Ethernet connection:
+    Ethernet.maintain();
+    digitalWrite(13, LOW);
+    delay(100);
+    digitalWrite(13, HIGH);
+    delay(100);
+    digitalWrite(13, LOW);
+    delay(100);
+    digitalWrite(13, HIGH);
+    delay(100);
+    digitalWrite(13, LOW);
+    Serial.println("ethernet ok");
+  }
+
   //renew connection
   client.stop();
   if (client.connect(server, port))
@@ -176,3 +205,32 @@ void sendDataToServer(String *data)
   }
   client.stop();
 }
+
+void printSensorType(uint8_t type)
+{
+  switch (type)
+  {
+    case S_TYPE_CO2:
+      Serial.print("CO2: ");
+      break;
+    case S_TYPE_T_AIR:
+      Serial.print("T: ");
+      break;
+    case S_TYPE_HUMIDITY:
+      Serial.print("Hum: ");
+      break;
+    case S_TYPE_PH:
+      Serial.print("Ph: ");
+      break;
+    case S_TYPE_EC:
+      Serial.print("Ec: ");
+      break;
+    case S_TYPE_T_WATER:
+      Serial.print("Water T: ");
+      break;
+    case S_TYPE_LIGHT:
+      Serial.print("Light: ");
+      break;
+  }
+}
+

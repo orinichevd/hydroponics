@@ -76,3 +76,4 @@ private:
   uint8_t _analogPin;
   uint8_t _digitalPin;
 };
+

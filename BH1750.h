@@ -166,3 +166,4 @@ private:
   uint8_t _address;
   uint8_t _mode;
 };
+
