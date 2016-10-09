@@ -1,7 +1,8 @@
 #include "Sensor.h"
 
 #include <Wire.h>
-#include "I2cMaster.h"
+
+
 
 #define BH1750_I2CADDR 0x23
 
@@ -99,69 +100,6 @@ class SensorBH1750 : public Sensor
     }
 
   private:
-    uint8_t _digitalPin;
-    float _value;
-    uint8_t _address;
-    uint8_t _mode;
-};
-
-//light sensor lux
-class SensorBH1750_Virtual : public Sensor
-{
-  public:
-    SensorBH1750_Virtual(uint8_t sdaPin, uint8_t sclPin, uint8_t address, uint8_t sensorId, uint8_t mode = BH1750_CONTINUOUS_HIGH_RES_MODE, uint8_t digitalPin = BH1750_ADDR_PIN_LOW)
-    {
-      _sdaPin = sdaPin;
-      _sclPin = sclPin;
-      _digitalPin = digitalPin;
-      _address = address;
-      _sId = sensorId;
-      _type = S_TYPE_LIGHT;
-      _model = "BH1750";
-      _mode = mode;
-    }
-
-    void init()
-    {
-      if (_digitalPin != BH1750_ADDR_PIN_LOW)
-      {
-        pinMode(_digitalPin, OUTPUT);
-        digitalWrite(_digitalPin, HIGH);
-      }
-      wire = new SoftI2cMaster(_sdaPin, _sclPin);
-      wire->start(_address | I2C_WRITE);
-      wire->write(_mode);
-      wire->stop();
-    }
-
-    uint8_t read()
-    {
-      uint8_t result = S_OK;
-      uint16_t level;
-      wire->start(_address | I2C_READ);
-      //Wire.requestFrom(_address, 2);
-
-      byte buff[2];
-      int i = 0;
-      for (uint8_t i = 0; i < 2; i++)
-      {
-        buff[i] = wire->read(i == 1);
-      }
-      wire->stop();
-
-      _value = ((buff[0] << 8) | buff[1]) / 1.2;
-
-      return result;
-    }
-
-    float getData()
-    {
-      return _value;
-    }
-
-  private:
-    SoftI2cMaster *wire;
-    uint8_t _sdaPin, _sclPin;
     uint8_t _digitalPin;
     float _value;
     uint8_t _address;

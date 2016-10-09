@@ -4,7 +4,7 @@
 class SensorSEN0161 : public Sensor
 {
   public:
-    SensorSEN0161(uint8_t analogPin, uint8_t sensorId, uint8_t sensorPId)
+    SensorSEN0161(uint8_t analogPin, uint8_t sensorId)
     {
       _analogPin = analogPin;
       _sId = sensorId;

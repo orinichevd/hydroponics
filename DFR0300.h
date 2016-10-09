@@ -8,7 +8,7 @@
 class SensorDFR0300 : public Sensor
 {
   public:
-    SensorDFR0300(uint8_t analogPin, Sensor *temperatureSensor, uint8_t sensorId, uint8_t sensorPId)
+    SensorDFR0300(uint8_t analogPin, Sensor *temperatureSensor, uint8_t sensorId)
     {
       _analogPin = analogPin;
       _sId = sensorId;
@@ -79,7 +79,7 @@ class SensorDFR0300 : public Sensor
 class SensorDS18B20 : public Sensor
 {
   public:
-    SensorDS18B20(uint8_t oneWirePin, uint8_t sensorId, uint8_t sensorPId)
+    SensorDS18B20(uint8_t oneWirePin, uint8_t sensorId)
     {
       _oneWirePin = oneWirePin;
       _sId = sensorId;
