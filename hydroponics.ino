@@ -3,7 +3,7 @@
 //#define DEBUG_ETH
 
 //#define BUILD_AIR
-#define BUILD_SHELF2
+#define BUILD_SHELF1
 
 #if defined(BUILD_SHELF1) || defined(BUILD_SHELF2)
 #define BUILD_SHELF
@@ -93,20 +93,21 @@ void setup()
   sensors[2] = new SensorBH1750(0X23, 6, 9);
   sensors[3] = new SensorBH1750(0X5C, 7, 9);
   sensors[4] = new SensorSEN0161(A1, 8);//ph
-  sensors[5] = new SensorDS18B20(A0, 9);//water t
-  sensors[6] = new SensorDFR0300(A2, sensors[1], 10);//ec
+  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 9);
+  sensors[5] = waterTSensor;//water t
+  sensors[6] = new SensorDFR0300(A2, waterTSensor, 10);//ec
 #endif
 #ifdef BUILD_SHELF2
   sensors = new Sensor *[7];
   sensorCount = 7;
-  sensors[0] = new SensorBH1750(0X23, 4, 8);
-  sensors[1] = new SensorBH1750(0X5C, 5, 8);
-  sensors[2] = new SensorBH1750(0X23, 6, 9);
-  sensors[3] = new SensorBH1750(0X5C, 7, 9);
-  sensors[4] = new SensorSEN0161(A1, 8);//ph
-  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 9);
+  sensors[0] = new SensorBH1750(0X23, 11, 8);
+  sensors[1] = new SensorBH1750(0X5C, 12, 8);
+  sensors[2] = new SensorBH1750(0X23, 13, 9);
+  sensors[3] = new SensorBH1750(0X5C, 14, 9);
+  sensors[4] = new SensorSEN0161(A1, 15);//ph
+  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 16);
   sensors[5] = waterTSensor;//water t
-  sensors[6] = new SensorDFR0300(A2, waterTSensor, 10);//ec
+  sensors[6] = new SensorDFR0300(A2, waterTSensor, 17);//ec
 #endif
 #ifdef BUILD_SHELF
 Wire.begin();
@@ -128,7 +129,7 @@ Wire.begin();
 #ifdef DEBUG
   Serial.println("Setup done");
 #endif
-  //wdt_enable(WDTO_8S);
+  wdt_enable(WDTO_8S);
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
 }
@@ -145,7 +146,6 @@ void loop()
 #ifdef DEBUG
     printSensorType(s->getType());
 #endif
-
     uint8_t errorCode = s->read();
     float sensorData;
     if (errorCode == S_OK)
@@ -159,22 +159,7 @@ void loop()
     {
       sensorData = 0;
 #ifdef DEBUG
-      switch (errorCode)
-      {
-        case S_OUT_OF_RANGE:
-          Serial.println("out of range");
-          break;
-        case S_ERROR_CHECKSUM:
-          Serial.println("checksum error");
-          break;
-        case S_ERROR_TIMEOUT:
-          Serial.println("timeout error");
-          break;
-        case S_NOT_RECOGNIZED:
-          Serial.println("cant found sensor on port");
-        default:
-          Serial.println("error reading");
-      }
+     printErrorCode(errorCode);
 #endif
     }
     addSensorInfoToData(&data, s->getSId(), s->getType(), s->getModel(), errorCode, sensorData);
@@ -218,7 +203,6 @@ void sendDataToServer(String *data)
     // start the Ethernet connection:
     Ethernet.maintain();
   }
-
   //renew connection
   client.stop();
   if (client.connect(server, port))
@@ -241,6 +225,26 @@ void sendDataToServer(String *data)
   }
 #endif
   client.stop();
+}
+
+void printErrorCode(uint8_t error)
+{
+   switch (error)
+      {
+        case S_OUT_OF_RANGE:
+          Serial.println("out of range");
+          break;
+        case S_ERROR_CHECKSUM:
+          Serial.println("checksum error");
+          break;
+        case S_ERROR_TIMEOUT:
+          Serial.println("timeout error");
+          break;
+        case S_NOT_RECOGNIZED:
+          Serial.println("cant found sensor on port");
+        default:
+          Serial.println("error reading");
+      }
 }
 
 void printSensorType(uint8_t type)
