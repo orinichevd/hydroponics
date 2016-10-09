@@ -55,6 +55,7 @@ public:
     v = v / DC_GAIN;
     if (v > ZERO_POINT_VOLTAGE || v < MAX_POINT_VOLTAGE)
     {
+      _value = 350;
       return S_OUT_OF_RANGE;
     }
     else
