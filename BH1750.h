@@ -42,7 +42,7 @@
 class SensorBH1750 : public Sensor
 {
   public:
-    SensorBH1750(uint8_t address, uint8_t sensorId, uint8_t mode = BH1750_CONTINUOUS_HIGH_RES_MODE, uint8_t digitalPin = BH1750_ADDR_PIN_LOW)
+    SensorBH1750(uint8_t address, uint8_t sensorId, uint8_t mode = BH1750_CONTINUOUS_HIGH_RES_MODE, uint8_t digitalPin)
     {
       _digitalPin = digitalPin;
       _address = address;
@@ -54,19 +54,16 @@ class SensorBH1750 : public Sensor
 
     void init()
     {
-      if (_digitalPin != BH1750_ADDR_PIN_LOW)
-      {
-        pinMode(_digitalPin, OUTPUT);
-        digitalWrite(_digitalPin, HIGH);
-      }
-      Wire.begin();
-      Wire.beginTransmission(_address);
-      Wire.write(_mode);
-      Wire.endTransmission();
+      pinMode(_digitalPin, OUTPUT);     
     }
 
     uint8_t read()
     {
+      digitalWrite(_digitalPin, HIGH);
+      Wire.begin();
+      Wire.beginTransmission(_address);
+      Wire.write(_mode);
+      Wire.endTransmission();
       uint8_t result = S_OK;
       uint16_t level;
       Wire.beginTransmission(_address);
@@ -80,7 +77,6 @@ class SensorBH1750 : public Sensor
         i++;
       }
       Wire.endTransmission();
-      Serial.print(i);
 
       if (i == 2)
       {
@@ -91,6 +87,7 @@ class SensorBH1750 : public Sensor
         _value = 0;
         result = S_OUT_OF_RANGE;
       }
+      digitalWrite(_digitalPin, LOW);
       return result;
     }
 

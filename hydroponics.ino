@@ -2,17 +2,15 @@
 //#define DEBUG_SERIAL
 //#define DEBUG_ETH
 
-//#define BUILD_AIR
-#define BUILD_SHELF2
+#define BUILD_AIR
+//#define BUILD_SHELF2
 
 #if defined(BUILD_SHELF1) || defined(BUILD_SHELF2)
 #define BUILD_SHELF
 #endif
 
 #if defined(DEBUG_ETH) || defined(DEBUG_SERIAL)
-
 #define DEBUG
-
 #endif
 
 
@@ -23,7 +21,7 @@
 
 #ifdef BUILD_AIR
 #include "MG811.h"
-#include "DHT11.h"
+#include "SI7021.h"
 #endif
 
 #ifdef BUILD_SHELF
@@ -32,6 +30,7 @@
 #include "BH1750.h"
 #endif
 
+
 #include "Sensor.h"
 
 unsigned long period = 5000;
@@ -39,6 +38,7 @@ const unsigned long resetTime = 25920000;
 
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
+
 
 #ifdef BUILD_AIR
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
@@ -59,13 +59,11 @@ Sensor **sensors;
 unsigned int sensorCount;
 
 
+
 void setup()
 {
-
-
+#ifdef DEBUG
   Serial.begin(9600);
-
-#ifdef DEBUG_SERIAL
   while (!Serial);
   delay(1000);
   Serial.println("Serial started");
@@ -75,17 +73,17 @@ void setup()
   period = 5000;
   Serial.println("DEBUG");
 #else
+  //period = 5000;
   period = 60000;
-  Serial.println("RELEASE");
 #endif
 
 #ifdef BUILD_AIR
   sensors = new Sensor *[3];
   sensorCount = 3;
   sensors[0] = new SensorMG811(A0, 2, 1);//co2
-  SensorDHT11_T* airSensor = new SensorDHT11_T(5, 2);
+  SensorSI7021_H* airSensor = new SensorSI7021_H(0X40, 2);;
   sensors[1] = airSensor;//air t
-  sensors[2] = new SensorDHT11_Hum(airSensor, 3);// air hum
+  sensors[2] = new SensorSI7021_T(airSensor, 3);// air hum
 #endif
 #ifdef BUILD_SHELF1
   sensors = new Sensor *[7];
@@ -116,15 +114,16 @@ void setup()
   }
 
 #if defined(DEBUG_ETH) || !defined(DEBUG)
-  Serial.println("eth enabled");
   if (!Ethernet.begin(mac))
   {
-    Serial.println("Ethernet not started");
+#ifdef DEBUG
+    Serial.Println("Ethernet not started");
+#endif
   }
 #endif
-
+#ifdef DEBUG
   Serial.println("Setup done");
-  
+#endif
   wdt_enable(WDTO_8S);
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
@@ -139,19 +138,23 @@ void loop()
   {
     wdt_reset();
     Sensor *s = sensors[i];
-
+#ifdef DEBUG
     printSensorType(s->getType());
+#endif
 
     uint8_t errorCode = s->read();
     float sensorData;
     if (errorCode == S_OK)
     {
       sensorData = s->getData();
+#ifdef DEBUG
       Serial.println(sensorData);
+#endif
     }
     else
     {
       sensorData = 0;
+#ifdef DEBUG
       switch (errorCode)
       {
         case S_OUT_OF_RANGE:
@@ -164,6 +167,7 @@ void loop()
           Serial.println("timeout error");
           break;
       }
+#endif
     }
     addSensorInfoToData(&data, s->getSId(), s->getType(), s->getModel(), errorCode, sensorData);
   }
@@ -177,14 +181,14 @@ void loop()
 
   delayWDT(period);
   if (millis() > resetTime) {
-    while(1);
+    while (1);
   }
 }
 
 void delayWDT(unsigned long delayTime) {
   unsigned long time = millis();
   unsigned long current = millis();
-  while (current-time<delayTime) {
+  while (current - time < delayTime) {
     current = millis();
     wdt_reset();
   }
@@ -199,14 +203,12 @@ void sendDataToServer(String *data)
 {
   if (Ethernet.gatewayIP() == NULL)
   {
-    Serial.println("no gateway");
     Ethernet.begin(mac);
   }
   else
   {
     // start the Ethernet connection:
     Ethernet.maintain();
-    Serial.println("ethernet ok");
   }
 
   //renew connection
@@ -217,18 +219,17 @@ void sendDataToServer(String *data)
     client.println("Host: hydroponics.vo-it.ru");
     client.println("Content-Type: text/csv");
     client.print("Content-Length: ");
-    *data = "test,test,test";
     client.println((*data).length());
     client.println();
-    
+
     client.println((*data));
-    
-    Serial.println(*data);
   }
+#ifdef DEBUG
   else
   {
     Serial.println("can't connect to server");
   }
+#endif
   client.stop();
 }
 

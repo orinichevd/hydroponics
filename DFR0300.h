@@ -100,7 +100,6 @@ class SensorDS18B20 : public Sensor
       ds->select(addr);
       if (addr[0] != 0x10 && addr[0] != 0x28)
       {
-        Serial.print("Device is not recognized!");
         return S_NOT_RECOGNIZED;
       }
       ds->write(0xBE); // Read Scratchpad
@@ -126,18 +125,17 @@ class SensorDS18B20 : public Sensor
     {
       if (!ds->search(addr))
       {
-        Serial.println("no more sensors on chain, reset search!");
         ds->reset_search();
         return;
       }
       if (OneWire::crc8(addr, 7) != addr[7])
       {
-        Serial.println("CRC is not valid!");
+
         return;
       }
       if (addr[0] != 0x10 && addr[0] != 0x28)
       {
-        Serial.print("Device is not recognized!");
+
         return;
       }
       ds->reset();

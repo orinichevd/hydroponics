@@ -52,8 +52,6 @@ public:
       delay(READ_SAMPLE_INTERVAL);
     }
     v = (v / READ_SAMPLE_TIMES) * 5 / (1024);
-    Serial.print("Voltage ");
-    Serial.println(v);
     v = v / DC_GAIN;
     if (v > ZERO_POINT_VOLTAGE || v < MAX_POINT_VOLTAGE)
     {
