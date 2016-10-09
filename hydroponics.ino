@@ -1,9 +1,9 @@
 
-//#define DEBUG_SERIAL
+#define DEBUG_SERIAL
 //#define DEBUG_ETH
 
-#define BUILD_AIR
-//#define BUILD_SHELF2
+//#define BUILD_AIR
+#define BUILD_SHELF2
 
 #if defined(BUILD_SHELF1) || defined(BUILD_SHELF2)
 #define BUILD_SHELF
@@ -88,24 +88,28 @@ void setup()
 #ifdef BUILD_SHELF1
   sensors = new Sensor *[7];
   sensorCount = 7;
-  sensors[0] = new SensorBH1750(0X23, 4, BH1750_CONTINUOUS_HIGH_RES_MODE);
-  sensors[1] = new SensorBH1750(0X5C, 5, BH1750_CONTINUOUS_HIGH_RES_MODE);
-  sensors[2] = new SensorBH1750(0X23, 6, BH1750_CONTINUOUS_HIGH_RES_MODE);
-  sensors[3] = new SensorBH1750(0X5C, 7, BH1750_CONTINUOUS_HIGH_RES_MODE);
-  sensors[4] = new SensorSEN0161(0, 8);//ph
-  sensors[5] = new SensorDS18B20(A1, 9);//water t
-  sensors[6] = new SensorDFR0300(2, sensors[1], 10);//ec
+  sensors[0] = new SensorBH1750(0X23, 4, 8);
+  sensors[1] = new SensorBH1750(0X5C, 5, 8);
+  sensors[2] = new SensorBH1750(0X23, 6, 9);
+  sensors[3] = new SensorBH1750(0X5C, 7, 9);
+  sensors[4] = new SensorSEN0161(A1, 8);//ph
+  sensors[5] = new SensorDS18B20(A0, 9);//water t
+  sensors[6] = new SensorDFR0300(A2, sensors[1], 10);//ec
 #endif
 #ifdef BUILD_SHELF2
-  sensors = new Sensor *[0];
-  sensorCount = 0;
-  /*sensors[0] = new SensorBH1750(0X23, 4, BH1750_CONTINUOUS_HIGH_RES_MODE);
-  sensors[1] = new SensorBH1750(0X5C, 5, BH1750_CONTINUOUS_HIGH_RES_MODE);
-  sensors[2] = new SensorBH1750(0X23, 6, BH1750_CONTINUOUS_HIGH_RES_MODE);
-  sensors[3] = new SensorBH1750(0X5C, 7, BH1750_CONTINUOUS_HIGH_RES_MODE);
-  sensors[4] = new SensorSEN0161(0, 8);//ph
-  sensors[5] = new SensorDS18B20(A1, 9);//water t
-  sensors[6] = new SensorDFR0300(2, sensors[1], 10);//ec*/
+  sensors = new Sensor *[7];
+  sensorCount = 7;
+  sensors[0] = new SensorBH1750(0X23, 4, 8);
+  sensors[1] = new SensorBH1750(0X5C, 5, 8);
+  sensors[2] = new SensorBH1750(0X23, 6, 9);
+  sensors[3] = new SensorBH1750(0X5C, 7, 9);
+  sensors[4] = new SensorSEN0161(A1, 8);//ph
+  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 9);
+  sensors[5] = waterTSensor;//water t
+  sensors[6] = new SensorDFR0300(A2, waterTSensor, 10);//ec
+#endif
+#ifdef BUILD_SHELF
+Wire.begin();
 #endif
 
   for (int i = 0; i < sensorCount; i++)
@@ -124,7 +128,7 @@ void setup()
 #ifdef DEBUG
   Serial.println("Setup done");
 #endif
-  wdt_enable(WDTO_8S);
+  //wdt_enable(WDTO_8S);
   pinMode(13, OUTPUT);
   digitalWrite(13, HIGH);
 }
@@ -166,6 +170,10 @@ void loop()
         case S_ERROR_TIMEOUT:
           Serial.println("timeout error");
           break;
+        case S_NOT_RECOGNIZED:
+          Serial.println("cant found sensor on port");
+        default:
+          Serial.println("error reading");
       }
 #endif
     }
@@ -221,7 +229,9 @@ void sendDataToServer(String *data)
     client.print("Content-Length: ");
     client.println((*data).length());
     client.println();
-
+#ifdef DEBUG
+    Serial.println(*data);
+#endif
     client.println((*data));
   }
 #ifdef DEBUG
