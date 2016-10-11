@@ -73,7 +73,6 @@ void setup()
   period = 5000;
   Serial.println("DEBUG");
 #else
-  //period = 5000;
   period = 60000;
 #endif
 

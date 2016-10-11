@@ -34,7 +34,6 @@ class SensorDFR0300 : public Sensor
         // the readings from the analog input
         buf[i] = analogRead(_analogPin);
         average += buf[i];
-        delay(25);
       }
       average = average / numReadings;
       voltage = average * 5000.0 / 1024;
@@ -44,19 +43,10 @@ class SensorDFR0300 : public Sensor
       {
         return S_OUT_OF_RANGE;
       }
-      else if (coeffVoltage <= 448)
+      else 
       {
-        _ecValue = 6.84 * coeffVoltage - 64.32;
+        _ecValue = 0.008*coeffVoltage - 0.045;
       }
-      else if (coeffVoltage <= 1457)
-      {
-        _ecValue = 6.98 * coeffVoltage - 127;
-      }
-      else
-      {
-        _ecValue = 5.3 * coeffVoltage + 2278;
-      }
-      _ecValue /= 1000;
       return S_OK;
     }
 

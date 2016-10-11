@@ -61,21 +61,15 @@ class SensorBH1750 : public Sensor
     uint8_t read()
     {
       digitalWrite(_digitalPin, HIGH);
-      Serial.println("up");
       delay(100);
       Wire.beginTransmission(_address);
       Wire.write(_mode);
       Wire.endTransmission();
-      Serial.println("inited");
       delay(100);
       uint8_t result = S_OK;
       uint16_t level;
       Wire.beginTransmission(_address);
-      Serial.println("1");
       Wire.requestFrom(_address, 2);
-       Serial.println("2");
-      
-      Serial.println("requested");
       byte buff[2];
       int i = 0;
       while (Wire.available())
