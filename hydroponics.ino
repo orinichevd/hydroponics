@@ -1,12 +1,9 @@
-#include <SD.h>
-
-
-#define DEBUG_SERIAL
+//#define DEBUG_SERIAL
 //#define DEBUG_ETH
-#definE LOG_SD
+//#define LOG_SD
 
-//#define BUILD_AIR
-#define BUILD_SHELF2
+#define BUILD_AIR
+//#define BUILD_SHELF2
 
 #if defined(BUILD_SHELF1) || defined(BUILD_SHELF2)
 #define BUILD_SHELF
@@ -18,8 +15,12 @@
 
 #include <SPI.h>
 #include <Ethernet2.h>
-#include <Wire.h>
+
 #include <avr/wdt.h>
+
+//#ifdef LOG_SD
+//#include <SD.h>
+//#endif
 
 #ifdef BUILD_AIR
 #include "MG811.h"
@@ -27,17 +28,18 @@
 #endif
 
 #ifdef BUILD_SHELF
+#include <Wire.h>
 #include "SEN0161.h"
 #include "DFR0300.h"
 #include "BH1750.h"
 #endif
 
-
 #include "Sensor.h"
 
-#ifdef LOG_SD
+//#ifdef LOG_SD
+//const byte chipSelect = 5;
+//#endif
 
-#endif
 
 unsigned long period = 5000;
 unsigned long lastmeasuredTime = 0;
@@ -46,20 +48,19 @@ const unsigned long resetTime = 25920000;//3 days
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
 
-
 #ifdef BUILD_AIR
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
-IPAddress ip (192, 168, 1, 11);
+IPAddress ip (192, 168, 88, 12);
 byte aId = 0x01;
 #endif
 #ifdef BUILD_SHELF1
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
-IPAddress ip (192, 168, 1, 12);
+IPAddress ip (192, 168, 88, 14);
 byte aId = 0x02;
 #endif
 #ifdef BUILD_SHELF2
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
-IPAddress ip (192, 168, 1, 13);
+IPAddress ip (192, 168, 88, 13);
 byte aId = 0x03;
 #endif
 
@@ -67,8 +68,6 @@ EthernetClient client;
 
 Sensor **sensors;
 unsigned int sensorCount;
-
-
 
 void setup()
 {
@@ -78,12 +77,15 @@ void setup()
   delay(1000);
   Serial.println("Serial started");
 #endif
+  //#ifdef LOG_SD
+  //SD.begin(chipSelect);
+  //writeToSD("Started");
+  //#endif
 
 #ifdef DEBUG
   period = 5000;
   Serial.println("DEBUG");
 #else
-  //period = 5000;
   period = 60000;
 #endif
 
@@ -118,7 +120,9 @@ void setup()
   sensors[5] = waterTSensor;//water t
   sensors[6] = new SensorDFR0300(A2, waterTSensor, 10);//ec
 #endif
+
 #ifdef BUILD_SHELF
+  Wire.begin();
 #endif
 
   for (int i = 0; i < sensorCount; i++)
@@ -127,45 +131,53 @@ void setup()
   }
 
 #if defined(DEBUG_ETH) || !defined(DEBUG)
-  if (!Ethernet.begin(mac))
-  {
-#ifdef DEBUG
-    Serial.Println("Ethernet not started");
-#endif
-  }
+  Ethernet.begin(mac, ip);
 #endif
 #ifdef DEBUG
   Serial.println("Setup done");
 #endif
+
   wdt_enable(WDTO_8S);
+
 }
 
 void loop()
 {
+  wdt_reset();
+
+  //reset
+  if (millis() > resetTime)
+  {
+    while (1);
+  }
+  //wait for cicle
+  if (millis() - lastmeasuredTime >= period)
+  {
+    lastmeasuredTime = millis();
+  }
+  else
+  {
+    return; //exit
+  }
+
   String data;
 
   for (int i = 0; i < sensorCount; i++)
   {
     wdt_reset();
     Sensor *s = sensors[i];
-#ifdef DEBUG
-    printSensorType(s->getType());
-#endif
     uint8_t errorCode = s->read();
     float sensorData;
     if (errorCode == S_OK)
     {
       sensorData = s->getData();
-#ifdef DEBUG
-      Serial.println(sensorData);
-#endif
     }
     else
     {
       sensorData = 0;
-#ifdef DEBUG
-#endif
     }
+
+
     addSensorInfoToData(&data, s->getSId(), s->getType(), s->getModel(), errorCode, sensorData);
   }
 
@@ -173,17 +185,6 @@ void loop()
 #if defined(DEBUG_ETH) || !defined(DEBUG)
   sendDataToServer(&data);
 #endif
-
-
-}
-
-void delayWDT(unsigned long delayTime) {
-  unsigned long time = millis();
-  unsigned long current = millis();
-  while (current - time < delayTime) {
-    current = millis();
-    wdt_reset();
-  }
 }
 
 void addSensorInfoToData(String *data, uint8_t sensorId, uint8_t type, String model, uint8_t errorCode, float value)
@@ -208,34 +209,36 @@ void sendDataToServer(String *data)
 #endif
     client.println((*data));
   }
-#ifdef DEBUG
   else
   {
+#ifdef DEBUG
     Serial.println("can't connect to server");
-  }
 #endif
+  }
+
   client.stop();
 }
 
-void printErrorCode(uint8_t error)
+/*void printErrorCode(uint8_t error)
 {
-   switch (error)
-      {
-        case S_OUT_OF_RANGE:
-          Serial.println("out of range");
-          break;
-        case S_ERROR_CHECKSUM:
-          Serial.println("checksum error");
-          break;
-        case S_ERROR_TIMEOUT:
-          Serial.println("timeout error");
-          break;
-        case S_NOT_RECOGNIZED:
-          Serial.println("cant found sensor on port");
-        default:
-          Serial.println("error reading");
-      }
+  switch (error)
+  {
+    case S_OUT_OF_RANGE:
+      Serial.println("out of range");
+      break;
+    case S_ERROR_CHECKSUM:
+      Serial.println("checksum error");
+      break;
+    case S_ERROR_TIMEOUT:
+      Serial.println("timeout error");
+      break;
+    case S_NOT_RECOGNIZED:
+      Serial.println("cant found sensor on port");
+    default:
+      Serial.println("error reading");
+  }
 }
+
 
 void printSensorType(uint8_t type)
 {
@@ -263,5 +266,17 @@ void printSensorType(uint8_t type)
       Serial.print("Light: ");
       break;
   }
+}*/
+
+#ifdef LOG_SD
+void writeToSD(String data)
+{
+  File logFile = SD.open("log", FILE_WRITE);
+  if (logFile)
+  {
+    logFile.println(String(millis()) + " " + data);
+    logFile.close();
+  }
 }
+#endif
 

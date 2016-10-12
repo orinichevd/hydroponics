@@ -60,18 +60,18 @@ public:
     }
     else
     {
-      value = pow(10, (v - CO2Curve[1]) / CO2Curve[2] + CO2Curve[0]);
+      _value = pow(10, (v - CO2Curve[1]) / CO2Curve[2] + CO2Curve[0]);
       return S_OK;
     }
   }
 
   float getData()
   {
-    return value;
+    return _value;
   }
 
 private:
-  float value;
+  float _value;
   uint8_t _analogPin;
   uint8_t _digitalPin;
 };
