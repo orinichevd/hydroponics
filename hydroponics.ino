@@ -1,9 +1,12 @@
+#include <SD.h>
+
 
 #define DEBUG_SERIAL
 //#define DEBUG_ETH
+#definE LOG_SD
 
 //#define BUILD_AIR
-#define BUILD_SHELF1
+#define BUILD_SHELF2
 
 #if defined(BUILD_SHELF1) || defined(BUILD_SHELF2)
 #define BUILD_SHELF
@@ -12,7 +15,6 @@
 #if defined(DEBUG_ETH) || defined(DEBUG_SERIAL)
 #define DEBUG
 #endif
-
 
 #include <SPI.h>
 #include <Ethernet2.h>
@@ -33,8 +35,13 @@
 
 #include "Sensor.h"
 
+#ifdef LOG_SD
+
+#endif
+
 unsigned long period = 5000;
-const unsigned long resetTime = 25920000;
+unsigned long lastmeasuredTime = 0;
+const unsigned long resetTime = 25920000;//3 days
 
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
@@ -42,14 +49,17 @@ const int port = 80;
 
 #ifdef BUILD_AIR
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
+IPAddress ip (192, 168, 1, 11);
 byte aId = 0x01;
 #endif
 #ifdef BUILD_SHELF1
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
+IPAddress ip (192, 168, 1, 12);
 byte aId = 0x02;
 #endif
 #ifdef BUILD_SHELF2
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
+IPAddress ip (192, 168, 1, 13);
 byte aId = 0x03;
 #endif
 
@@ -73,6 +83,7 @@ void setup()
   period = 5000;
   Serial.println("DEBUG");
 #else
+  //period = 5000;
   period = 60000;
 #endif
 
@@ -92,24 +103,22 @@ void setup()
   sensors[2] = new SensorBH1750(0X23, 6, 9);
   sensors[3] = new SensorBH1750(0X5C, 7, 9);
   sensors[4] = new SensorSEN0161(A1, 8);//ph
-  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 9);
-  sensors[5] = waterTSensor;//water t
-  sensors[6] = new SensorDFR0300(A2, waterTSensor, 10);//ec
+  sensors[5] = new SensorDS18B20(A0, 9);//water t
+  sensors[6] = new SensorDFR0300(A2, sensors[1], 10);//ec
 #endif
 #ifdef BUILD_SHELF2
   sensors = new Sensor *[7];
   sensorCount = 7;
-  sensors[0] = new SensorBH1750(0X23, 11, 8);
-  sensors[1] = new SensorBH1750(0X5C, 12, 8);
-  sensors[2] = new SensorBH1750(0X23, 13, 9);
-  sensors[3] = new SensorBH1750(0X5C, 14, 9);
-  sensors[4] = new SensorSEN0161(A1, 15);//ph
-  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 16);
+  sensors[0] = new SensorBH1750(0X23, 4, 8);
+  sensors[1] = new SensorBH1750(0X5C, 5, 8);
+  sensors[2] = new SensorBH1750(0X23, 6, 9);
+  sensors[3] = new SensorBH1750(0X5C, 7, 9);
+  sensors[4] = new SensorSEN0161(A1, 8);//ph
+  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 9);
   sensors[5] = waterTSensor;//water t
-  sensors[6] = new SensorDFR0300(A2, waterTSensor, 17);//ec
+  sensors[6] = new SensorDFR0300(A2, waterTSensor, 10);//ec
 #endif
 #ifdef BUILD_SHELF
-Wire.begin();
 #endif
 
   for (int i = 0; i < sensorCount; i++)
@@ -129,13 +138,10 @@ Wire.begin();
   Serial.println("Setup done");
 #endif
   wdt_enable(WDTO_8S);
-  pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH);
 }
 
 void loop()
 {
-  digitalWrite(13, HIGH);
   String data;
 
   for (int i = 0; i < sensorCount; i++)
@@ -158,23 +164,17 @@ void loop()
     {
       sensorData = 0;
 #ifdef DEBUG
-     printErrorCode(errorCode);
 #endif
     }
     addSensorInfoToData(&data, s->getSId(), s->getType(), s->getModel(), errorCode, sensorData);
   }
 
-  digitalWrite(13, LOW);
   //send data to server
 #if defined(DEBUG_ETH) || !defined(DEBUG)
   sendDataToServer(&data);
 #endif
 
 
-  delayWDT(period);
-  if (millis() > resetTime) {
-    while (1);
-  }
 }
 
 void delayWDT(unsigned long delayTime) {
@@ -193,15 +193,6 @@ void addSensorInfoToData(String *data, uint8_t sensorId, uint8_t type, String mo
 
 void sendDataToServer(String *data)
 {
-  if (Ethernet.gatewayIP() == NULL)
-  {
-    Ethernet.begin(mac);
-  }
-  else
-  {
-    // start the Ethernet connection:
-    Ethernet.maintain();
-  }
   //renew connection
   client.stop();
   if (client.connect(server, port))
