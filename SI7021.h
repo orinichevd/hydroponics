@@ -33,7 +33,6 @@ class SensorSI7021_H : public Sensor
 
     void init()
     {
-      Wire.begin();
       Wire.beginTransmission(_address);
       if (Wire.endTransmission() == 0)
       {
@@ -43,8 +42,6 @@ class SensorSI7021_H : public Sensor
     uint8_t read()
     {
       uint8_t result = S_OK;
-
-
 
       byte humbytes[2];
       _command(RH_READ, humbytes);
@@ -75,7 +72,7 @@ class SensorSI7021_H : public Sensor
       Wire.endTransmission();
     }
 
-    void _readReg(byte * reg, int reglen) {
+    void _readReg(byte * reg, uint8_t reglen) {
       Wire.requestFrom(_address, reglen);
       while (Wire.available() < reglen) {
       }
@@ -88,7 +85,6 @@ class SensorSI7021_H : public Sensor
       _writeReg(&cmd, sizeof cmd);
       _readReg(buf, 2);
     }
-
 
     uint8_t _address;
 };

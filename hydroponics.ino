@@ -17,6 +17,7 @@
 #include <Ethernet2.h>
 
 #include <avr/wdt.h>
+#include <Wire.h>
 
 //#ifdef LOG_SD
 //#include <SD.h>
@@ -28,7 +29,6 @@
 #endif
 
 #ifdef BUILD_SHELF
-#include <Wire.h>
 #include "SEN0161.h"
 #include "DFR0300.h"
 #include "BH1750.h"
@@ -121,9 +121,7 @@ void setup()
   sensors[6] = new SensorDFR0300(A2, waterTSensor, 10);//ec
 #endif
 
-#ifdef BUILD_SHELF
   Wire.begin();
-#endif
 
   for (int i = 0; i < sensorCount; i++)
   {
