@@ -154,9 +154,9 @@ void loop()
   {
     return; //exit
   }
-
   
   char data[500];
+  data[0] = '\0';
 
   for (int i = 0; i < sensorCount; i++)
   {
@@ -165,7 +165,7 @@ void loop()
     Sensor *s = sensors[i];
     uint8_t errorCode = s->read();
     float sensorData = errorCode == S_OK ? s->getData() : 0.0;
-    addSensorInfoToData1(buf, s, errorCode, sensorData);
+    addSensorInfoToData(buf, s, errorCode, sensorData);
     strcat(data,buf);
   }
 #ifdef DEBUG
@@ -179,9 +179,12 @@ void loop()
 }
 
 
-void addSensorInfoToData1(char* data, Sensor* s, uint8_t errorCode, float value)
+void addSensorInfoToData(char* data, Sensor* s, uint8_t errorCode, float value)
 {
-  sprintf(data, "%d,%d,%s,%d,%g\r\n", s->getSId(), s->getType(), s->getModel(),errorCode, value);
+  int fractpart, intpart;
+  intpart = trunc(value);
+  fractpart = trunc((value-trunc(value))*100);
+  sprintf(data, "%d,%d,%s,%d,%d.%d\r\n", s->getSId(), s->getType(), s->getModel(),errorCode, intpart, fractpart);
 }
 
 void sendDataToServer(char *data)
@@ -256,6 +259,8 @@ void printSensorType(uint8_t type)
       break;
   }
 }*/
+
+
 
 #ifdef LOG_SD
 void writeToSD(String data)
