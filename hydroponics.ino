@@ -1,9 +1,9 @@
-//#define DEBUG_SERIAL
-//#define DEBUG_ETH
+#define DEBUG_SERIAL
+#define DEBUG_ETH
 //#define LOG_SD
 
-#define BUILD_AIR
-//#define BUILD_SHELF2
+//#define BUILD_AIR
+#define BUILD_SHELF1
 
 #if defined(BUILD_SHELF1) || defined(BUILD_SHELF2)
 #define BUILD_SHELF
@@ -178,6 +178,9 @@ void loop()
 
     addSensorInfoToData(&data, s->getSId(), s->getType(), s->getModel(), errorCode, sensorData);
   }
+  #ifdef DEBUG
+    Serial.println(data);
+#endif
 
   //send data to server
 #if defined(DEBUG_ETH) || !defined(DEBUG)
@@ -202,9 +205,6 @@ void sendDataToServer(String *data)
     client.print("Content-Length: ");
     client.println((*data).length());
     client.println();
-#ifdef DEBUG
-    Serial.println(*data);
-#endif
     client.println((*data));
   }
   else
