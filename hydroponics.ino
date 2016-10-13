@@ -1,6 +1,11 @@
-#define DEBUG_SERIAL
-#define DEBUG_ETH
-//#define LOG_SD
+#define LOG_SERIAL
+#define ETH_OFF
+#define LOG_SD
+#define DEBUG
+
+#if  defined(LOG_SD) || defined(LOG_SERIAL)
+#define LOG_ENABLED
+#endif
 
 //#define BUILD_AIR
 #define BUILD_SHELF1
@@ -9,20 +14,16 @@
 #define BUILD_SHELF
 #endif
 
-#if defined(DEBUG_ETH) || defined(DEBUG_SERIAL)
-#define DEBUG
-#endif
+#define CS_PIN 5
 
 #include <SPI.h>
 #include <Ethernet2.h>
 
-#include <avr/wdt.h>
-#include <avr/pgmspace.h>
-#include <Wire.h>
+#include <SD.h>
+#include "log.h"
 
-//#ifdef LOG_SD
-//#include <SD.h>
-//#endif
+#include <avr/wdt.h>
+#include <Wire.h>
 
 #ifdef BUILD_AIR
 #include "MG811.h"
@@ -37,11 +38,6 @@
 
 #include "Sensor.h"
 
-//#ifdef LOG_SD
-//const byte chipSelect = 5;
-//#endif
-
-
 unsigned long period = 5000;
 unsigned long lastmeasuredTime = 0;
 const unsigned long resetTime = 25920000;//3 days
@@ -55,12 +51,14 @@ IPAddress ip (192, 168, 88, 12);
 Sensor *sensors[3];
 const unsigned int sensorCount = 3;
 #endif
+
 #ifdef BUILD_SHELF1
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
 IPAddress ip (192, 168, 88, 14);
 Sensor *sensors[7];
 const unsigned int sensorCount = 7;
 #endif
+
 #ifdef BUILD_SHELF2
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
 IPAddress ip (192, 168, 88, 13);
@@ -68,28 +66,23 @@ Sensor *sensors[7];
 const unsigned int sensorCount = 7;
 #endif
 
+#ifndef ETH_OFF
 EthernetClient client;
+#endif
 
-
+#ifdef LOG_ENABLED
+Logger logWriter(CS_PIN);
+#endif
 
 void setup()
 {
 #ifdef DEBUG
-  Serial.begin(9600);
-  while (!Serial);
-  delay(1000);
-  Serial.println("Serial started");
-#endif
-  //#ifdef LOG_SD
-  //SD.begin(chipSelect);
-  //writeToSD("Started");
-  //#endif
-
-#ifdef DEBUG
   period = 5000;
-  Serial.println("DEBUG");
 #else
   period = 60000;
+#endif
+#ifdef LOG_ENABLED
+
 #endif
 
 #ifdef BUILD_AIR
@@ -125,11 +118,8 @@ void setup()
     sensors[i]->init();
   }
 
-#if defined(DEBUG_ETH) || !defined(DEBUG)
+#ifndef ETH_OFF
   Ethernet.begin(mac, ip);
-#endif
-#ifdef DEBUG
-  Serial.println("Setup done");
 #endif
 
   wdt_enable(WDTO_8S);
@@ -148,13 +138,10 @@ void loop()
   //wait for cicle
   if (millis() - lastmeasuredTime >= period)
   {
-    lastmeasuredTime = millis();
+    return;
   }
-  else
-  {
-    return; //exit
-  }
-  
+  lastmeasuredTime = millis(); lastmeasuredTime = millis();
+
   char data[500];
   data[0] = '\0';
 
@@ -166,14 +153,11 @@ void loop()
     uint8_t errorCode = s->read();
     float sensorData = errorCode == S_OK ? s->getData() : 0.0;
     addSensorInfoToData(buf, s, errorCode, sensorData);
-    strcat(data,buf);
+    strcat(data, buf);
   }
-#ifdef DEBUG
-  Serial.println(data);
-#endif
 
   //send data to server
-#if defined(DEBUG_ETH) || !defined(DEBUG)
+#ifndef ETH_OFF
   sendDataToServer(data);
 #endif
 }
@@ -183,10 +167,11 @@ void addSensorInfoToData(char* data, Sensor* s, uint8_t errorCode, float value)
 {
   int fractpart, intpart;
   intpart = trunc(value);
-  fractpart = trunc((value-trunc(value))*100);
-  sprintf(data, "%d,%d,%s,%d,%d.%d\r\n", s->getSId(), s->getType(), s->getModel(),errorCode, intpart, fractpart);
+  fractpart = trunc((value - trunc(value)) * 100);
+  sprintf(data, "%d,%d,%s,%d,%d.%d\r\n", s->getSId(), s->getType(), s->getModel(), errorCode, intpart, fractpart);
 }
 
+#ifndef ETH_OFF
 void sendDataToServer(char *data)
 {
   //renew connection
@@ -201,15 +186,9 @@ void sendDataToServer(char *data)
     client.println();
     client.println(data);
   }
-  else
-  {
-#ifdef DEBUG
-    Serial.println("can't connect to server");
-#endif
-  }
-
   client.stop();
 }
+#endif
 
 /*void printErrorCode(uint8_t error)
 {
@@ -260,17 +239,4 @@ void printSensorType(uint8_t type)
   }
 }*/
 
-
-
-#ifdef LOG_SD
-void writeToSD(String data)
-{
-  File logFile = SD.open("log", FILE_WRITE);
-  if (logFile)
-  {
-    logFile.println(String(millis()) + " " + data);
-    logFile.close();
-  }
-}
-#endif
 
