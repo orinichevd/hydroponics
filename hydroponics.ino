@@ -51,23 +51,25 @@ const int port = 80;
 #ifdef BUILD_AIR
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
 IPAddress ip (192, 168, 88, 12);
-byte aId = 0x01;
+Sensor *sensors[3];
+const unsigned int sensorCount = 3;
 #endif
 #ifdef BUILD_SHELF1
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
 IPAddress ip (192, 168, 88, 14);
-byte aId = 0x02;
+Sensor *sensors[7];
+const unsigned int sensorCount = 7;
 #endif
 #ifdef BUILD_SHELF2
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
 IPAddress ip (192, 168, 88, 13);
-byte aId = 0x03;
+Sensor *sensors[7];
+const unsigned int sensorCount = 7;
 #endif
 
 EthernetClient client;
 
-Sensor **sensors;
-unsigned int sensorCount;
+
 
 void setup()
 {
@@ -90,16 +92,12 @@ void setup()
 #endif
 
 #ifdef BUILD_AIR
-  sensors = new Sensor *[3];
-  sensorCount = 3;
   sensors[0] = new SensorMG811(A0, 2, 1);//co2
   SensorSI7021_H* airSensor = new SensorSI7021_H(0X40, 2);;
   sensors[1] = airSensor;//air t
   sensors[2] = new SensorSI7021_T(airSensor, 3);// air hum
 #endif
 #ifdef BUILD_SHELF1
-  sensors = new Sensor *[7];
-  sensorCount = 7;
   sensors[0] = new SensorBH1750(0X23, 4, 8);
   sensors[1] = new SensorBH1750(0X5C, 5, 8);
   sensors[2] = new SensorBH1750(0X23, 6, 9);
@@ -109,8 +107,6 @@ void setup()
   sensors[6] = new SensorDFR0300(A2, sensors[1], 10);//ec
 #endif
 #ifdef BUILD_SHELF2
-  sensors = new Sensor *[7];
-  sensorCount = 7;
   sensors[0] = new SensorBH1750(0X23, 4, 8);
   sensors[1] = new SensorBH1750(0X5C, 5, 8);
   sensors[2] = new SensorBH1750(0X23, 6, 9);
@@ -165,17 +161,7 @@ void loop()
     wdt_reset();
     Sensor *s = sensors[i];
     uint8_t errorCode = s->read();
-    float sensorData;
-    if (errorCode == S_OK)
-    {
-      sensorData = s->getData();
-    }
-    else
-    {
-      sensorData = 0;
-    }
-
-
+    float sensorData = errorCode == S_OK ? s->getData() : 0;
     addSensorInfoToData(&data, s->getSId(), s->getType(), s->getModel(), errorCode, sensorData);
   }
   #ifdef DEBUG

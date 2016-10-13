@@ -25,11 +25,11 @@ public:
     virtual float getData() = 0;
     uint8_t getSId() { return _sId; }
     uint8_t getType() { return _type; }
-    char* getModel() { return _model; }
+    const char* getModel() { return _model; }
 protected:
     uint8_t _sId;
     uint8_t _type;
-    char* _model;
+    const char* _model;
 };
 
 #endif
