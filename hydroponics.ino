@@ -17,6 +17,7 @@
 #include <Ethernet2.h>
 
 #include <avr/wdt.h>
+#include <avr/pgmspace.h>
 #include <Wire.h>
 
 //#ifdef LOG_SD
@@ -107,14 +108,14 @@ void setup()
   sensors[6] = new SensorDFR0300(A2, sensors[1], 10);//ec
 #endif
 #ifdef BUILD_SHELF2
-  sensors[0] = new SensorBH1750(0X23, 4, 8);
-  sensors[1] = new SensorBH1750(0X5C, 5, 8);
-  sensors[2] = new SensorBH1750(0X23, 6, 9);
-  sensors[3] = new SensorBH1750(0X5C, 7, 9);
-  sensors[4] = new SensorSEN0161(A1, 8);//ph
-  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 9);
+  sensors[0] = new SensorBH1750(0X23, 11, 8);
+  sensors[1] = new SensorBH1750(0X5C, 12, 8);
+  sensors[2] = new SensorBH1750(0X23, 13, 9);
+  sensors[3] = new SensorBH1750(0X5C, 14, 9);
+  sensors[4] = new SensorSEN0161(A1, 15);//ph
+  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 16);
   sensors[5] = waterTSensor;//water t
-  sensors[6] = new SensorDFR0300(A2, waterTSensor, 10);//ec
+  sensors[6] = new SensorDFR0300(A2, waterTSensor, 17);//ec
 #endif
 
   Wire.begin();
@@ -154,32 +155,36 @@ void loop()
     return; //exit
   }
 
-  String data;
+  
+  char data[500];
 
   for (int i = 0; i < sensorCount; i++)
   {
+    char buf[25];
     wdt_reset();
     Sensor *s = sensors[i];
     uint8_t errorCode = s->read();
-    float sensorData = errorCode == S_OK ? s->getData() : 0;
-    addSensorInfoToData(&data, s->getSId(), s->getType(), s->getModel(), errorCode, sensorData);
+    float sensorData = errorCode == S_OK ? s->getData() : 0.0;
+    addSensorInfoToData1(buf, s, errorCode, sensorData);
+    strcat(data,buf);
   }
-  #ifdef DEBUG
-    Serial.println(data);
+#ifdef DEBUG
+  Serial.println(data);
 #endif
 
   //send data to server
 #if defined(DEBUG_ETH) || !defined(DEBUG)
-  sendDataToServer(&data);
+  sendDataToServer(data);
 #endif
 }
 
-void addSensorInfoToData(String *data, uint8_t sensorId, uint8_t type, String model, uint8_t errorCode, float value)
+
+void addSensorInfoToData1(char* data, Sensor* s, uint8_t errorCode, float value)
 {
-  *data = *data + String(sensorId) + ',' + String(type) + ',' + String(model) + ',' + String(errorCode) + ',' + String(value) + "\r\n";
+  sprintf(data, "%d,%d,%s,%d,%g\r\n", s->getSId(), s->getType(), s->getModel(),errorCode, value);
 }
 
-void sendDataToServer(String *data)
+void sendDataToServer(char *data)
 {
   //renew connection
   client.stop();
@@ -189,9 +194,9 @@ void sendDataToServer(String *data)
     client.println("Host: hydroponics.vo-it.ru");
     client.println("Content-Type: text/csv");
     client.print("Content-Length: ");
-    client.println((*data).length());
+    client.println(strlen(data));
     client.println();
-    client.println((*data));
+    client.println(data);
   }
   else
   {
