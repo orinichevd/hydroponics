@@ -1,6 +1,9 @@
 #ifndef LOG_OR
 #define LOG_OR
 
+//#define LOG_SERIAL
+#define LOG_SD
+
 #include <Arduino.h>
 #include <SD.h>
 

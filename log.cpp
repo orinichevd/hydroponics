@@ -1,15 +1,14 @@
 #include "log.h"
 
-
 Logger::Logger(uint8_t csPin)
 {
   _csPin = csPin;
 }
 
 void Logger::init()
-{
+{ 
 #ifdef LOG_SD
-  SD.begin(chipSelect);
+  SD.begin(_csPin);
 #endif
 #ifdef LOG_SERIAL
   Serial.begin(9600);

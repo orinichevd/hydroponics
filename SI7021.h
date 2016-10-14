@@ -34,9 +34,7 @@ class SensorSI7021_H : public Sensor
     void init()
     {
       Wire.beginTransmission(_address);
-      if (Wire.endTransmission() == 0)
-      {
-      }
+      Wire.endTransmission();
     }
 
     uint8_t read()

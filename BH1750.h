@@ -53,8 +53,7 @@ class SensorBH1750 : public Sensor
     }
 
     void init()
-    {
-      
+    {    
       pinMode(_digitalPin, OUTPUT);     
     }
 
@@ -69,7 +68,7 @@ class SensorBH1750 : public Sensor
       uint8_t result = S_OK;
       uint16_t level;
       Wire.beginTransmission(_address);
-      Wire.requestFrom(_address, 2);
+      Wire.requestFrom(_address, (uint8_t)2);
       byte buff[2];
       int i = 0;
       while (Wire.available())

@@ -1,14 +1,12 @@
-#define LOG_SERIAL
-#define ETH_OFF
-#define LOG_SD
-#define DEBUG
+//#define ETH_OFF
+//#define DEBUG
 
 #if  defined(LOG_SD) || defined(LOG_SERIAL)
 #define LOG_ENABLED
 #endif
 
-//#define BUILD_AIR
-#define BUILD_SHELF1
+#define BUILD_AIR
+//#define BUILD_SHELF1
 
 #if defined(BUILD_SHELF1) || defined(BUILD_SHELF2)
 #define BUILD_SHELF
@@ -44,12 +42,14 @@ const unsigned long resetTime = 25920000;//3 days
 
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
+uint8_t failCount = 0;
+const int maxFailCount = 10;
 
 #ifdef BUILD_AIR
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
 IPAddress ip (192, 168, 88, 12);
-Sensor *sensors[3];
-const unsigned int sensorCount = 3;
+Sensor *sensors[1];
+const unsigned int sensorCount = 1;
 #endif
 
 #ifdef BUILD_SHELF1
@@ -70,26 +70,30 @@ const unsigned int sensorCount = 7;
 EthernetClient client;
 #endif
 
-#ifdef LOG_ENABLED
 Logger logWriter(CS_PIN);
-#endif
 
 void setup()
 {
+#ifdef LOG_ENABLED
+  logWriter.init();
+#endif
 #ifdef DEBUG
   period = 5000;
+  logWriter.logData("STARTED IN DEBUG MODE");
 #else
   period = 60000;
+  logWriter.logData("STARTED IN RELEASE MODE");
 #endif
-#ifdef LOG_ENABLED
-
+  Wire.begin();
+#ifndef ETH_OFF
+  Ethernet.begin(mac, ip);
 #endif
 
 #ifdef BUILD_AIR
   sensors[0] = new SensorMG811(A0, 2, 1);//co2
-  SensorSI7021_H* airSensor = new SensorSI7021_H(0X40, 2);;
-  sensors[1] = airSensor;//air t
-  sensors[2] = new SensorSI7021_T(airSensor, 3);// air hum
+  //SensorSI7021_H* airSensor = new SensorSI7021_H(0X40, 2);;
+  //sensors[1] = airSensor;//air t
+  //sensors[2] = new SensorSI7021_T(airSensor, 3);// air hum
 #endif
 #ifdef BUILD_SHELF1
   sensors[0] = new SensorBH1750(0X23, 4, 8);
@@ -111,16 +115,10 @@ void setup()
   sensors[6] = new SensorDFR0300(A2, waterTSensor, 17);//ec
 #endif
 
-  Wire.begin();
-
   for (int i = 0; i < sensorCount; i++)
   {
     sensors[i]->init();
   }
-
-#ifndef ETH_OFF
-  Ethernet.begin(mac, ip);
-#endif
 
   wdt_enable(WDTO_8S);
 
@@ -130,17 +128,19 @@ void loop()
 {
   wdt_reset();
 
-  //reset
-  if (millis() > resetTime)
+  //reset if time to update or cant send data to server many times
+  if (millis() > resetTime || failCount >= maxFailCount)
   {
+    logWriter.logData("time to reset");
     while (1);
   }
   //wait for cicle
-  if (millis() - lastmeasuredTime >= period)
+  if (millis() - lastmeasuredTime <= period)
   {
     return;
   }
-  lastmeasuredTime = millis(); lastmeasuredTime = millis();
+  logWriter.logData("start measure");
+  lastmeasuredTime = millis();
 
   char data[500];
   data[0] = '\0';
@@ -153,6 +153,7 @@ void loop()
     uint8_t errorCode = s->read();
     float sensorData = errorCode == S_OK ? s->getData() : 0.0;
     addSensorInfoToData(buf, s, errorCode, sensorData);
+    logWriter.logData(buf);
     strcat(data, buf);
   }
 
@@ -161,7 +162,6 @@ void loop()
   sendDataToServer(data);
 #endif
 }
-
 
 void addSensorInfoToData(char* data, Sensor* s, uint8_t errorCode, float value)
 {
@@ -185,8 +185,14 @@ void sendDataToServer(char *data)
     client.println(strlen(data));
     client.println();
     client.println(data);
+    logWriter.logData("data sent");
   }
-  client.stop();
+  else
+  {
+    logWriter.logData("cant send to server");
+    failCount++;
+  }
+  
 }
 #endif
 
