@@ -173,8 +173,8 @@ void addSensorInfoToData(char* data, Sensor* s, uint8_t errorCode, float value)
 #ifndef ETH_OFF
 void sendDataToServer(char *data)
 {
-  //renew connection
-  client.stop();
+  wdt_reset();
+  
   if (client.connect(server, port))
   {
     client.println("POST /sensorInput HTTP/1.1");
@@ -191,6 +191,8 @@ void sendDataToServer(char *data)
     logWriter.logData("cant send to server");
     failCount++;
   }
+  //renew connection
+  client.stop();
   
 }
 #endif
