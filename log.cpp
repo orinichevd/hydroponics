@@ -6,16 +6,22 @@ Logger::Logger(uint8_t csPin)
 }
 
 void Logger::init()
-{ 
-#ifdef LOG_SD
-  SD.begin(_csPin);
-#endif
+{
 #ifdef LOG_SERIAL
   Serial.begin(9600);
   while (!Serial);
   delay(1000);
   Serial.println("Serial started");
 #endif
+#ifdef LOG_SD
+  if (!SD.begin(_csPin))
+  {
+#ifdef LOG_SERIAL
+    Serial.println("cant find card");
+#endif
+  }
+#endif
+
 }
 
 void Logger::logData(char* data)

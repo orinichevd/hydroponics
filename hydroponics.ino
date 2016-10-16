@@ -1,9 +1,8 @@
 //#define ETH_OFF
 //#define DEBUG
-
-#if  defined(LOG_SD) || defined(LOG_SERIAL)
+//first data received at 20-1 on friday 14
 #define LOG_ENABLED
-#endif
+
 
 #define BUILD_AIR
 //#define BUILD_SHELF1
@@ -12,7 +11,7 @@
 #define BUILD_SHELF
 #endif
 
-#define CS_PIN 5
+#define CS_PIN 4
 
 #include <SPI.h>
 #include <Ethernet2.h>
@@ -21,11 +20,11 @@
 #include "log.h"
 
 #include <avr/wdt.h>
-#include <Wire.h>
+//#include <Wire.h>
 
 #ifdef BUILD_AIR
 #include "MG811.h"
-#include "SI7021.h"
+//#include "SI7021.h"
 #endif
 
 #ifdef BUILD_SHELF
@@ -84,7 +83,7 @@ void setup()
   period = 60000;
   logWriter.logData("STARTED IN RELEASE MODE");
 #endif
-  Wire.begin();
+  //Wire.begin();
 #ifndef ETH_OFF
   Ethernet.begin(mac, ip);
 #endif
