@@ -1,6 +1,5 @@
 #include "log.h"
 
-
 Logger::Logger(uint8_t csPin)
 {
   _csPin = csPin;
@@ -8,18 +7,19 @@ Logger::Logger(uint8_t csPin)
 
 void Logger::init()
 {
-#ifdef LOG_SD
-  SD.begin(chipSelect);
-#endif
 #ifdef LOG_SERIAL
   Serial.begin(9600);
-  while (!Serial);
+  while (!Serial)
+    ;
   delay(1000);
   Serial.println("Serial started");
 #endif
+#ifdef LOG_SD
+  SD.begin(chipSelect);
+#endif
 }
 
-void Logger::logData(char* data)
+void Logger::logData(char *data)
 {
 #ifdef LOG_SD
   File logFile = SD.open("log", FILE_WRITE);
@@ -54,4 +54,3 @@ void Logger::logData(float data)
   Serial.println(buf);
 #endif
 }
-

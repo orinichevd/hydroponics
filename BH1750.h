@@ -1,9 +1,5 @@
 #include "Sensor.h"
 
-#include <Wire.h>
-
-
-
 #define BH1750_I2CADDR 0x23
 
 // No active state
@@ -42,7 +38,7 @@
 class SensorBH1750 : public Sensor
 {
   public:
-    SensorBH1750(uint8_t address, uint8_t sensorId, uint8_t digitalPin, uint8_t mode = BH1750_CONTINUOUS_HIGH_RES_MODE)
+    SensorBH1750(uint8_t address, uint8_t digitalPin, uint8_t sensorId, uint8_t mode = BH1750_CONTINUOUS_HIGH_RES_MODE)
     {
       _digitalPin = digitalPin;
       _address = address;
@@ -54,8 +50,8 @@ class SensorBH1750 : public Sensor
 
     void init()
     {
-      
-      pinMode(_digitalPin, OUTPUT);     
+      pinMode(_digitalPin, OUTPUT);   
+      digitalWrite(_digitalPin, HIGH);  
     }
 
     uint8_t read()

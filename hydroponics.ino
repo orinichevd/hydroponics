@@ -1,7 +1,7 @@
-#define LOG_SERIAL
-#define ETH_OFF
-#define LOG_SD
-#define DEBUG
+//#define LOG_SERIAL
+//#define ETH_OFF
+//#define LOG_SD
+//#define DEBUG
 
 #if  defined(LOG_SD) || defined(LOG_SERIAL)
 #define LOG_ENABLED
@@ -14,16 +14,17 @@
 #define BUILD_SHELF
 #endif
 
-#define CS_PIN 5
-
 #include <SPI.h>
 #include <Ethernet2.h>
 
-#include <SD.h>
-#include "log.h"
-
 #include <avr/wdt.h>
 #include <Wire.h>
+#include "log.h"
+#include "pinMap.h"
+
+#ifdef LOG_ENABLED
+#include <SD.h>
+#endif
 
 #ifdef BUILD_AIR
 #include "MG811.h"
@@ -81,34 +82,31 @@ void setup()
 #else
   period = 60000;
 #endif
-#ifdef LOG_ENABLED
-
-#endif
 
 #ifdef BUILD_AIR
-  sensors[0] = new SensorMG811(A0, 2, 1);//co2
-  SensorSI7021_H* airSensor = new SensorSI7021_H(0X40, 2);;
+  sensors[0] = new SensorMG811(MGH11_ANALOG_PIN, MGH11_DIGITAL_PIN, 1);//co2
+  SensorSI7021_H* airSensor = new SensorSI7021_H(SI7021_I2C_ADDRESS, 2);;
   sensors[1] = airSensor;//air t
   sensors[2] = new SensorSI7021_T(airSensor, 3);// air hum
 #endif
 #ifdef BUILD_SHELF1
-  sensors[0] = new SensorBH1750(0X23, 4, 8);
-  sensors[1] = new SensorBH1750(0X5C, 5, 8);
-  sensors[2] = new SensorBH1750(0X23, 6, 9);
-  sensors[3] = new SensorBH1750(0X5C, 7, 9);
-  sensors[4] = new SensorSEN0161(A1, 8);//ph
-  sensors[5] = new SensorDS18B20(A0, 9);//water t
-  sensors[6] = new SensorDFR0300(A2, sensors[1], 10);//ec
+  sensors[0] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN1, 4);
+  sensors[1] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN1, 5);
+  sensors[2] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN2, 6);
+  sensors[3] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN2, 7);
+  sensors[4] = new SensorSEN0161(SEN0161_ANALOG_PIN, 8);//ph
+  sensors[5] = new SensorDS18B20(DS18B20_ANALOG_PIN, 9);//water t
+  sensors[6] = new SensorDFR0300(DFR0300_ANALOG_PIN, sensors[1], 10);//ec
 #endif
 #ifdef BUILD_SHELF2
-  sensors[0] = new SensorBH1750(0X23, 11, 8);
-  sensors[1] = new SensorBH1750(0X5C, 12, 8);
-  sensors[2] = new SensorBH1750(0X23, 13, 9);
-  sensors[3] = new SensorBH1750(0X5C, 14, 9);
-  sensors[4] = new SensorSEN0161(A1, 15);//ph
-  SensorDS18B20* waterTSensor = new SensorDS18B20(A0, 16);
+  sensors[0] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN1, 11);
+  sensors[1] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN1, 12);
+  sensors[2] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN2, 13);
+  sensors[3] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN2, 14);
+  sensors[4] = new SensorSEN0161(SEN0161_ANALOG_PIN, 15);//ph
+  SensorDS18B20* waterTSensor = new SensorDS18B20(DS18B20_ANALOG_PIN, 16);
   sensors[5] = waterTSensor;//water t
-  sensors[6] = new SensorDFR0300(A2, waterTSensor, 17);//ec
+  sensors[6] = new SensorDFR0300(DFR0300_ANALOG_PIN, waterTSensor, 17);//ec
 #endif
 
   Wire.begin();
