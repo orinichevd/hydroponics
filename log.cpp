@@ -1,4 +1,5 @@
 #include "log.h"
+//#define LOG_SERIAL
 
 Logger::Logger(uint8_t csPin)
 {

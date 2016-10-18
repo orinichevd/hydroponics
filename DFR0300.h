@@ -1,8 +1,7 @@
 #include "Sensor.h"
 #include "OneWire.h"
 
-#define StartConvert 0
-#define ReadTemperature 1
+#define BUILD_SHELF2
 
 //EC sensor return conductivity in ms/cm
 class SensorDFR0300 : public Sensor
@@ -23,29 +22,34 @@ class SensorDFR0300 : public Sensor
 
     uint8_t read()
     {
-      uint8_t buf[numReadings];
-      uint8_t average;
+      uint8_t buf[25];
+      float average = 0;
       float voltage;
 
       float _temperature = (temperatureSensor != NULL) ? temperatureSensor->getData() : 25.0;
 
-      for (int i = 0; i < numReadings; i++)
+      for (int i = 0; i < 25; i++)
       {
         // the readings from the analog input
-        buf[i] = analogRead(_analogPin);
-        average += buf[i];
+        average += analogRead(_analogPin);
       }
-      average = average / numReadings;
-      voltage = average * 5000.0 / 1024;
+
+      average = average / 25;
+      voltage = average * 4.88;
       float tempCoeff = 1.0 + 0.0185 * (_temperature - 25.0);
       float coeffVoltage = voltage / tempCoeff;
       if (coeffVoltage < 150 || coeffVoltage > 3300)
       {
         return S_OUT_OF_RANGE;
       }
-      else 
+      else
       {
+        #ifdef BUILD_SHELF1
         _ecValue = 0.008*coeffVoltage - 0.045;
+        #endif
+        #ifdef BUILD_SHELF2
+        _ecValue = 0.008*coeffVoltage - 0.124;
+        #endif
       }
       return S_OK;
     }
@@ -61,8 +65,6 @@ class SensorDFR0300 : public Sensor
     float _ecValue;
 
     Sensor *temperatureSensor;
-
-    const uint8_t numReadings = 25;
 };
 
 //returns the temperature from one DS18B20 in DEG Celsius
@@ -101,8 +103,8 @@ class SensorDS18B20 : public Sensor
       convert();
       return S_OK;
     }
-    
-    float getData() 
+
+    float getData()
     {
       return _temperature;
     }
@@ -111,18 +113,16 @@ class SensorDS18B20 : public Sensor
     {
       if (!ds->search(addr))
       {
-        Serial.println("no more sensors on chain, reset search!");
+
         ds->reset_search();
         return;
       }
       if (OneWire::crc8(addr, 7) != addr[7])
       {
-Serial.println("CRC is not valid!");
         return;
       }
       if (addr[0] != 0x10 && addr[0] != 0x28)
       {
-Serial.print("Device is not recognized!");
         return;
       }
       ds->reset();

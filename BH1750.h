@@ -38,9 +38,10 @@
 class SensorBH1750 : public Sensor
 {
   public:
-    SensorBH1750(uint8_t address, uint8_t digitalPin, uint8_t sensorId, uint8_t mode = BH1750_CONTINUOUS_HIGH_RES_MODE)
+    SensorBH1750(uint8_t address, uint8_t hPin, uint8_t lPin, uint8_t sensorId, uint8_t mode = BH1750_CONTINUOUS_HIGH_RES_MODE)
     {
-      _digitalPin = digitalPin;
+      _hPin = hPin;
+      _lPin = lPin;
       _address = address;
       _sId = sensorId;
       _type = S_TYPE_LIGHT;
@@ -50,14 +51,18 @@ class SensorBH1750 : public Sensor
 
     void init()
     {
-      pinMode(_digitalPin, OUTPUT);   
-      digitalWrite(_digitalPin, HIGH);  
+      pinMode(_hPin, OUTPUT);   
+      pinMode(_lPin, OUTPUT);
+      digitalWrite(_hPin, HIGH);  
+      digitalWrite(_lPin, HIGH);  
     }
 
     uint8_t read()
     {
-      digitalWrite(_digitalPin, HIGH);
+      digitalWrite(_hPin, HIGH);
+      digitalWrite(_lPin, LOW);
       delay(100);
+      
       Wire.beginTransmission(_address);
       Wire.write(_mode);
       Wire.endTransmission();
@@ -94,7 +99,8 @@ class SensorBH1750 : public Sensor
     }
 
   private:
-    uint8_t _digitalPin;
+    uint8_t _hPin;
+    uint8_t _lPin;
     float _value;
     uint8_t _address;
     uint8_t _mode;

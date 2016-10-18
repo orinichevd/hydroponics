@@ -8,7 +8,7 @@
 #endif
 
 //#define BUILD_AIR
-#define BUILD_SHELF1
+#define BUILD_SHELF2
 
 #if defined(BUILD_SHELF1) || defined(BUILD_SHELF2)
 #define BUILD_SHELF
@@ -46,6 +46,8 @@ const unsigned long resetTime = 25920000;//3 days
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
 
+IPAddress dns1 (192, 168, 88, 1);
+
 #ifdef BUILD_AIR
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
 IPAddress ip (192, 168, 88, 12);
@@ -56,28 +58,29 @@ const unsigned int sensorCount = 3;
 #ifdef BUILD_SHELF1
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
 IPAddress ip (192, 168, 88, 14);
-Sensor *sensors[7];
-const unsigned int sensorCount = 7;
+Sensor *sensors[5];
+const unsigned int sensorCount = 5;
 #endif
 
 #ifdef BUILD_SHELF2
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
 IPAddress ip (192, 168, 88, 13);
-Sensor *sensors[7];
-const unsigned int sensorCount = 7;
+Sensor *sensors[5];
+const unsigned int sensorCount = 5;
 #endif
 
 #ifndef ETH_OFF
 EthernetClient client;
 #endif
 
-#ifdef LOG_ENABLED
+//#ifdef LOG_ENABLED
 Logger logWriter(CS_PIN);
-#endif
+//#endif
 
 void setup()
 {
 #ifdef DEBUG
+  logWriter.init();
   period = 5000;
 #else
   period = 60000;
@@ -90,38 +93,41 @@ void setup()
   sensors[2] = new SensorSI7021_T(airSensor, 3);// air hum
 #endif
 #ifdef BUILD_SHELF1
-  sensors[0] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN1, 4);
-  sensors[1] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN1, 5);
-  sensors[2] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN2, 6);
-  sensors[3] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN2, 7);
-  sensors[4] = new SensorSEN0161(SEN0161_ANALOG_PIN, 8);//ph
-  sensors[5] = new SensorDS18B20(DS18B20_ANALOG_PIN, 9);//water t
-  sensors[6] = new SensorDFR0300(DFR0300_ANALOG_PIN, sensors[1], 10);//ec
+  sensors[0] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN1, BH1750_BUS_SELECTION_PIN2, 4);
+  sensors[1] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN1, BH1750_BUS_SELECTION_PIN2, 5);
+  //sensors[2] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN2, BH1750_BUS_SELECTION_PIN1, 6);
+  //sensors[3] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN2, BH1750_BUS_SELECTION_PIN1, 7);   
+  sensors[2] = new SensorSEN0161(SEN0161_ANALOG_PIN, 8);//ph
+  SensorDS18B20* waterTSensor = new SensorDS18B20(DS18B20_ANALOG_PIN, 9);//water t
+  sensors[3] = waterTSensor;//water t
+  sensors[4] = new SensorDFR0300(DFR0300_ANALOG_PIN, waterTSensor, 10);//ec
 #endif
 #ifdef BUILD_SHELF2
-  sensors[0] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN1, 11);
-  sensors[1] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN1, 12);
-  sensors[2] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN2, 13);
-  sensors[3] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN2, 14);
-  sensors[4] = new SensorSEN0161(SEN0161_ANALOG_PIN, 15);//ph
+  sensors[0] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN1, BH1750_BUS_SELECTION_PIN2, 11);
+  sensors[1] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN1, BH1750_BUS_SELECTION_PIN2, 12);
+  //sensors[2] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN2, BH1750_BUS_SELECTION_PIN1, 13);
+  //sensors[3] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN2, BH1750_BUS_SELECTION_PIN1, 14);
+  sensors[2] = new SensorSEN0161(SEN0161_ANALOG_PIN, 15);//ph
   SensorDS18B20* waterTSensor = new SensorDS18B20(DS18B20_ANALOG_PIN, 16);
-  sensors[5] = waterTSensor;//water t
-  sensors[6] = new SensorDFR0300(DFR0300_ANALOG_PIN, waterTSensor, 17);//ec
+  sensors[3] = waterTSensor;//water t
+  sensors[4] = new SensorDFR0300(DFR0300_ANALOG_PIN, waterTSensor, 17);//ec
 #endif
 
   Wire.begin();
-
+  delay(1000);
   for (int i = 0; i < sensorCount; i++)
   {
     sensors[i]->init();
   }
-
+  logWriter.logData("inited");
+  
 #ifndef ETH_OFF
-  Ethernet.begin(mac, ip);
+  Ethernet.begin(mac);
 #endif
-
+#ifndef DEBUG
   wdt_enable(WDTO_8S);
-
+#endif
+  lastmeasuredTime = millis();
 }
 
 void loop()
@@ -129,22 +135,24 @@ void loop()
   wdt_reset();
 
   //reset
+#ifndef DEBUG
   if (millis() > resetTime)
   {
     while (1);
   }
+#endif
   //wait for cicle
-  if (millis() - lastmeasuredTime >= period)
+  if (millis() - lastmeasuredTime <= period)
   {
     return;
   }
-  lastmeasuredTime = millis(); lastmeasuredTime = millis();
-
+  lastmeasuredTime = millis(); 
   char data[500];
   data[0] = '\0';
 
   for (int i = 0; i < sensorCount; i++)
   {
+    //logWriter.logData("s");
     char buf[25];
     wdt_reset();
     Sensor *s = sensors[i];
@@ -153,6 +161,7 @@ void loop()
     addSensorInfoToData(buf, s, errorCode, sensorData);
     strcat(data, buf);
   }
+logWriter.logData(data);
 
   //send data to server
 #ifndef ETH_OFF
@@ -183,8 +192,9 @@ void sendDataToServer(char *data)
     client.println(strlen(data));
     client.println();
     client.println(data);
+  
   }
-  client.stop();
+  
 }
 #endif
 
