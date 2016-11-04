@@ -46,7 +46,7 @@ const unsigned long resetTime = 25920000;//3 days
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
 
-IPAddress dns1 (192, 168, 88, 1);
+IPAddress google_dns (8, 8, 8, 8);
 
 #ifdef BUILD_AIR
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0xC8};
@@ -122,7 +122,7 @@ void setup()
   logWriter.logData("inited");
   
 #ifndef ETH_OFF
-  Ethernet.begin(mac);
+  Ethernet.begin(mac,ip, google_dns);
 #endif
 #ifndef DEBUG
   wdt_enable(WDTO_8S);
