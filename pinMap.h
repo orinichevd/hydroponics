@@ -1,6 +1,5 @@
 #define CS_PIN 4
 
-
 //*********AIR SENSOR
 //MGH811 pins
 #define MGH11_ANALOG_PIN A0

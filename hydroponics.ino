@@ -8,16 +8,13 @@
 #endif
 
 //#define BUILD_AIR
-#define BUILD_SHELF2
-
-#if defined(BUILD_SHELF1) || defined(BUILD_SHELF2)
-#define BUILD_SHELF
-#endif
+#define BUILD_SHELF_ONE
 
 #include <SPI.h>
 #include <Ethernet2.h>
 
 #include <avr/wdt.h>
+
 #include <Wire.h>
 #include "log.h"
 #include "pinMap.h"
@@ -31,7 +28,7 @@
 #include "SI7021.h"
 #endif
 
-#ifdef BUILD_SHELF
+#if (defined(BUILD_SHELF_ONE) || defined(BUILD_SHELF_TWO))
 #include "SEN0161.h"
 #include "DFR0300.h"
 #include "BH1750.h"
@@ -39,12 +36,19 @@
 
 #include "Sensor.h"
 
+#ifdef DEBUG
 unsigned long period = 5000;
+#else
+unsigned long period = 5000;
+#endif
+
 unsigned long lastmeasuredTime = 0;
-const unsigned long resetTime = 25920000;//3 days
+const unsigned long resetTime = 120000;//1.5 days
 
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
+uint8_t failCount = 0;
+const int maxFailCount = 10;
 
 IPAddress google_dns (8, 8, 8, 8);
 
@@ -55,14 +59,14 @@ Sensor *sensors[3];
 const unsigned int sensorCount = 3;
 #endif
 
-#ifdef BUILD_SHELF1
+#if defined(BUILD_SHELF_ONE)
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x84, 0xDE};
 IPAddress ip (192, 168, 88, 14);
 Sensor *sensors[5];
 const unsigned int sensorCount = 5;
 #endif
 
-#ifdef BUILD_SHELF2
+#if defined(BUILD_SHELF_TWO)
 byte mac[] = {0x90, 0xA2, 0xDA, 0x10, 0x77, 0x7A};
 IPAddress ip (192, 168, 88, 13);
 Sensor *sensors[5];
@@ -81,9 +85,8 @@ void setup()
 {
 #ifdef DEBUG
   logWriter.init();
-  period = 5000;
 #else
-  period = 60000;
+  Serial.begin(9600);
 #endif
 
 #ifdef BUILD_AIR
@@ -92,17 +95,17 @@ void setup()
   sensors[1] = airSensor;//air t
   sensors[2] = new SensorSI7021_T(airSensor, 3);// air hum
 #endif
-#ifdef BUILD_SHELF1
+#ifdef BUILD_SHELF_ONE
   sensors[0] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN1, BH1750_BUS_SELECTION_PIN2, 4);
   sensors[1] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN1, BH1750_BUS_SELECTION_PIN2, 5);
   //sensors[2] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN2, BH1750_BUS_SELECTION_PIN1, 6);
-  //sensors[3] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN2, BH1750_BUS_SELECTION_PIN1, 7);   
+  //sensors[3] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN2, BH1750_BUS_SELECTION_PIN1, 7);
   sensors[2] = new SensorSEN0161(SEN0161_ANALOG_PIN, 8);//ph
   SensorDS18B20* waterTSensor = new SensorDS18B20(DS18B20_ANALOG_PIN, 9);//water t
   sensors[3] = waterTSensor;//water t
   sensors[4] = new SensorDFR0300(DFR0300_ANALOG_PIN, waterTSensor, 10);//ec
 #endif
-#ifdef BUILD_SHELF2
+#ifdef BUILD_SHELF_TWO
   sensors[0] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN1, BH1750_BUS_SELECTION_PIN2, 11);
   sensors[1] = new SensorBH1750(BH1750_I2C_ADDRESS_2, BH1750_BUS_SELECTION_PIN1, BH1750_BUS_SELECTION_PIN2, 12);
   //sensors[2] = new SensorBH1750(BH1750_I2C_ADDRESS_1, BH1750_BUS_SELECTION_PIN2, BH1750_BUS_SELECTION_PIN1, 13);
@@ -120,12 +123,9 @@ void setup()
     sensors[i]->init();
   }
   logWriter.logData("inited");
-  
-#ifndef ETH_OFF
-  Ethernet.begin(mac,ip, google_dns);
-#endif
+
 #ifndef DEBUG
-  wdt_enable(WDTO_8S);
+  wdt_enable(WDTO_4S);
 #endif
   lastmeasuredTime = millis();
 }
@@ -134,19 +134,22 @@ void loop()
 {
   wdt_reset();
 
-  //reset
 #ifndef DEBUG
-  if (millis() > resetTime)
+  //reset whole board
+  //reset to restore registers state
+  if (millis() > resetTime || failCount > maxFailCount)
   {
+    resetEth();
     while (1);
   }
 #endif
   //wait for cicle
   if (millis() - lastmeasuredTime <= period)
   {
+    resetEth();
     return;
   }
-  lastmeasuredTime = millis(); 
+  lastmeasuredTime = millis();
   char data[500];
   data[0] = '\0';
 
@@ -157,14 +160,17 @@ void loop()
     wdt_reset();
     Sensor *s = sensors[i];
     uint8_t errorCode = s->read();
+    wdt_reset();
     float sensorData = errorCode == S_OK ? s->getData() : 0.0;
     addSensorInfoToData(buf, s, errorCode, sensorData);
+    wdt_reset();
     strcat(data, buf);
   }
-logWriter.logData(data);
+  logWriter.logData(data);
 
   //send data to server
 #ifndef ETH_OFF
+  wdt_reset();
   sendDataToServer(data);
 #endif
 }
@@ -181,8 +187,11 @@ void addSensorInfoToData(char* data, Sensor* s, uint8_t errorCode, float value)
 #ifndef ETH_OFF
 void sendDataToServer(char *data)
 {
+  wdt_reset();
+  Ethernet.begin(mac, ip, google_dns);
   //renew connection
-  client.stop();
+
+  wdt_reset();
   if (client.connect(server, port))
   {
     client.println("POST /sensorInput HTTP/1.1");
@@ -191,60 +200,41 @@ void sendDataToServer(char *data)
     client.print("Content-Length: ");
     client.println(strlen(data));
     client.println();
-    client.println(data);
-  
+    client.println(data);;
+    logWriter.logData("data sent");
+    wdt_reset();
   }
-  
+  else
+  {
+    failCount++;
+    logWriter.logData("can't sent data");
+  }
+
+  while (client.available())
+  {
+    wdt_reset();
+    client.read();
+  }
+  client.stop();
+  resetEth();
 }
 #endif
 
-/*void printErrorCode(uint8_t error)
+
+
+void resetEth()
 {
-  switch (error)
-  {
-    case S_OUT_OF_RANGE:
-      Serial.println("out of range");
-      break;
-    case S_ERROR_CHECKSUM:
-      Serial.println("checksum error");
-      break;
-    case S_ERROR_TIMEOUT:
-      Serial.println("timeout error");
-      break;
-    case S_NOT_RECOGNIZED:
-      Serial.println("cant found sensor on port");
-    default:
-      Serial.println("error reading");
-  }
+  uint16_t _addr = 0x00;
+  uint8_t _cb = 0x04;
+  uint8_t _data = 0x80;
+  SPISettings wiznet_SPI_settings(800000, MSBFIRST, SPI_MODE0);
+  SPI.beginTransaction(wiznet_SPI_settings);
+  digitalWrite(10, LOW);
+  SPI.transfer(_addr >> 8);
+  SPI.transfer(_addr & 0xFF);
+  SPI.transfer(_cb);
+  SPI.transfer(_data);
+  digitalWrite(10, HIGH);
+  SPI.endTransaction();
 }
-
-
-void printSensorType(uint8_t type)
-{
-  switch (type)
-  {
-    case S_TYPE_CO2:
-      Serial.print("CO2: ");
-      break;
-    case S_TYPE_T_AIR:
-      Serial.print("T: ");
-      break;
-    case S_TYPE_HUMIDITY:
-      Serial.print("Hum: ");
-      break;
-    case S_TYPE_PH:
-      Serial.print("Ph: ");
-      break;
-    case S_TYPE_EC:
-      Serial.print("Ec: ");
-      break;
-    case S_TYPE_T_WATER:
-      Serial.print("Water T: ");
-      break;
-    case S_TYPE_LIGHT:
-      Serial.print("Light: ");
-      break;
-  }
-}*/
-
 
