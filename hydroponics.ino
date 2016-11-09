@@ -39,16 +39,16 @@
 #ifdef DEBUG
 unsigned long period = 5000;
 #else
-unsigned long period = 5000;
+unsigned long period = 30000;
 #endif
 
 unsigned long lastmeasuredTime = 0;
-const unsigned long resetTime = 120000;//1.5 days
+const unsigned long resetTime = 1200000;//1 hour
 
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
 uint8_t failCount = 0;
-const int maxFailCount = 10;
+const int maxFailCount = 5;
 
 IPAddress google_dns (8, 8, 8, 8);
 
@@ -83,6 +83,7 @@ Logger logWriter(CS_PIN);
 
 void setup()
 {
+
 #ifdef DEBUG
   logWriter.init();
 #else
@@ -117,17 +118,21 @@ void setup()
 #endif
 
   Wire.begin();
-  delay(1000);
+  delay(500);
+
+  delay(500);
   for (int i = 0; i < sensorCount; i++)
   {
     sensors[i]->init();
+
   }
   logWriter.logData("inited");
 
-#ifndef DEBUG
-  wdt_enable(WDTO_4S);
-#endif
+
   lastmeasuredTime = millis();
+#ifndef DEBUG
+  wdt_enable(WDTO_1S);
+#endif
 }
 
 void loop()
@@ -140,7 +145,7 @@ void loop()
   if (millis() > resetTime || failCount > maxFailCount)
   {
     resetEth();
-    while (1);
+    while (1) {};
   }
 #endif
   //wait for cicle
@@ -200,7 +205,7 @@ void sendDataToServer(char *data)
     client.print("Content-Length: ");
     client.println(strlen(data));
     client.println();
-    client.println(data);;
+    client.println(data);
     logWriter.logData("data sent");
     wdt_reset();
   }
@@ -210,11 +215,6 @@ void sendDataToServer(char *data)
     logWriter.logData("can't sent data");
   }
 
-  while (client.available())
-  {
-    wdt_reset();
-    client.read();
-  }
   client.stop();
   resetEth();
 }
