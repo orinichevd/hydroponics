@@ -43,12 +43,12 @@ unsigned long period = 30000;
 #endif
 
 unsigned long lastmeasuredTime = 0;
-const unsigned long resetTime = 1200000;//1 hour
+const unsigned long resetTime = 600000;//1 hour
 
 const char server[] = "hydroponics.vo-it.ru";
 const int port = 80;
 uint8_t failCount = 0;
-const int maxFailCount = 5;
+const int maxFailCount = 3;
 
 IPAddress google_dns (8, 8, 8, 8);
 
@@ -89,7 +89,10 @@ void setup()
 #else
   Serial.begin(9600);
 #endif
-
+  delay(2000);
+#ifndef DEBUG
+  wdt_enable(WDTO_1S);
+#endif
 #ifdef BUILD_AIR
   sensors[0] = new SensorMG811(MGH11_ANALOG_PIN, MGH11_DIGITAL_PIN, 1);//co2
   SensorSI7021_H* airSensor = new SensorSI7021_H(SI7021_I2C_ADDRESS, 2);;
@@ -116,42 +119,42 @@ void setup()
   sensors[3] = waterTSensor;//water t
   sensors[4] = new SensorDFR0300(DFR0300_ANALOG_PIN, waterTSensor, 17);//ec
 #endif
-
+  wdt_reset();
   Wire.begin();
+  wdt_reset();
+  delay(500);
+  wdt_reset();
   delay(500);
 
-  delay(500);
   for (int i = 0; i < sensorCount; i++)
   {
-    sensors[i]->init();
 
+    wdt_reset();
+    sensors[i]->init();
   }
+
   logWriter.logData("inited");
 
-
+  Ethernet.begin(mac, ip, google_dns);
   lastmeasuredTime = millis();
-#ifndef DEBUG
-  wdt_enable(WDTO_1S);
-#endif
+
 }
 
 void loop()
 {
   wdt_reset();
-
 #ifndef DEBUG
   //reset whole board
   //reset to restore registers state
-  if (millis() > resetTime || failCount > maxFailCount)
-  {
+  /*if (millis() > resetTime || failCount > maxFailCount)
+    {
     resetEth();
     while (1) {};
-  }
+    }*/
 #endif
   //wait for cicle
   if (millis() - lastmeasuredTime <= period)
   {
-    resetEth();
     return;
   }
   lastmeasuredTime = millis();
@@ -178,6 +181,8 @@ void loop()
   wdt_reset();
   sendDataToServer(data);
 #endif
+  resetEth();
+  while (1) {};
 }
 
 
@@ -192,11 +197,6 @@ void addSensorInfoToData(char* data, Sensor* s, uint8_t errorCode, float value)
 #ifndef ETH_OFF
 void sendDataToServer(char *data)
 {
-  wdt_reset();
-  Ethernet.begin(mac, ip, google_dns);
-  //renew connection
-
-  wdt_reset();
   if (client.connect(server, port))
   {
     client.println("POST /sensorInput HTTP/1.1");
@@ -214,9 +214,7 @@ void sendDataToServer(char *data)
     failCount++;
     logWriter.logData("can't sent data");
   }
-
   client.stop();
-  resetEth();
 }
 #endif
 
