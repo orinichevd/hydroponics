@@ -3,8 +3,8 @@
 //#define LOG_SD
 //#define DEBUG
 
-#define BUILD_AIR
-//#define BUILD_SHELF_TWO
+//#define BUILD_AIR
+#define BUILD_SHELF_ONE
 
 #ifdef LOG_ENABLED
 #include <SD.h>
@@ -87,8 +87,8 @@ void setup()
 #endif
 
   delay(5000);
-
   wdt_enable(WDTO_8S);
+  
   
 #ifdef BUILD_AIR
   sensors[0] = new SensorMG811(MGH11_ANALOG_PIN, MGH11_DIGITAL_PIN, 1);//co2
@@ -180,6 +180,14 @@ void toggleLed()
   delay(100);
 }
 
+void longToggleLed() 
+{
+  digitalWrite(13, HIGH);
+  delay(500);
+  digitalWrite(13, LOW);
+  delay(100);
+}
+
 void addSensorInfoToData(char* data, Sensor* s, uint8_t errorCode, float value)
 {
   int fractpart, intpart;
@@ -191,6 +199,8 @@ void addSensorInfoToData(char* data, Sensor* s, uint8_t errorCode, float value)
 #ifndef ETH_OFF
 void sendDataToServer(char *data)
 {
+  longToggleLed();
+  wdt_reset();
   if (client.connect(server, port))
   {
     client.println("POST /sensorInput HTTP/1.1");
@@ -201,11 +211,14 @@ void sendDataToServer(char *data)
     client.println();
     client.println(data);
     logWriter.logData("data sent");
+    toggleLed();
+    toggleLed();
   }
   else
   {
     failCount++;
     logWriter.logData("can't sent data");
+    toggleLed();
   }
   client.stop();
 }
