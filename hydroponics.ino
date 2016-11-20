@@ -24,7 +24,7 @@
 #include "SI7021.h"
 #endif
 
-#if (defined(BUILD_SHELF_ONE) || defined(BUILD_SHELF_TWO))
+#if defined(BUILD_SHELF_ONE) || defined(BUILD_SHELF_TWO)
 #include "SEN0161.h"
 #include "DFR0300.h"
 #include "BH1750.h"
@@ -74,17 +74,21 @@ EthernetClient client;
 #endif
 
 Logger logWriter(CS_PIN);
+bool blink = true;
 
 void setup()
 {
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
 #ifdef DEBUG
   logWriter.init();
 #else
-  Serial.begin(9600);
+  Serial.begin(11500);
 #endif
 
   delay(5000);
-  wdt_enable(WDTO_1S);
+
+  wdt_enable(WDTO_8S);
   
 #ifdef BUILD_AIR
   sensors[0] = new SensorMG811(MGH11_ANALOG_PIN, MGH11_DIGITAL_PIN, 1);//co2
@@ -112,12 +116,9 @@ void setup()
   sensors[3] = waterTSensor;//water t
   sensors[4] = new SensorDFR0300(DFR0300_ANALOG_PIN, waterTSensor, 17);//ec
 #endif
-  wdt_reset();
+
   Wire.begin();
-  wdt_reset();
-  delay(500);
-  wdt_reset();
-  delay(500);
+  delay(1000);
 
   for (int i = 0; i < sensorCount; i++)
   {
@@ -130,11 +131,13 @@ void setup()
   Ethernet.begin(mac, ip, google_dns);
   lastmeasuredTime = millis();
   
+  
 }
 
 void loop()
 {
   wdt_reset();
+  toggleLed();
   //wait for cicle
   if (millis() - lastmeasuredTime <= period)
   {
@@ -150,7 +153,6 @@ void loop()
     wdt_reset();
     Sensor *s = sensors[i];
     uint8_t errorCode = s->read();
-    wdt_reset();
     float sensorData = errorCode == S_OK ? s->getData() : 0.0;
     addSensorInfoToData(buf, s, errorCode, sensorData);
     wdt_reset();
@@ -164,9 +166,19 @@ void loop()
   sendDataToServer(data);
 #endif
   resetEth();
-  while (1);
+  delay(9000);
+  //workaround 
+  //if we are here - that means that Serial not inited and wdt not working try to start again
+  wdt_enable(WDTO_8S);
 }
 
+void toggleLed() 
+{
+  digitalWrite(13, HIGH);
+  delay(100);
+  digitalWrite(13, LOW);
+  delay(100);
+}
 
 void addSensorInfoToData(char* data, Sensor* s, uint8_t errorCode, float value)
 {
@@ -189,7 +201,6 @@ void sendDataToServer(char *data)
     client.println();
     client.println(data);
     logWriter.logData("data sent");
-    wdt_reset();
   }
   else
   {
