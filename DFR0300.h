@@ -35,7 +35,8 @@ class SensorDFR0300 : public Sensor
       }
 
       average = average / 25;
-      voltage = average * 4.88;
+      _ecValue = average;
+      /*voltage = average * 4.88;
       float tempCoeff = 1.0 + 0.0185 * (_temperature - 25.0);
       float coeffVoltage = voltage / tempCoeff;
       if (coeffVoltage < 150 || coeffVoltage > 3300)
@@ -50,7 +51,7 @@ class SensorDFR0300 : public Sensor
         #ifdef BUILD_SHELF2
         _ecValue = 0.008*coeffVoltage - 0.124;
         #endif
-      }
+      }*/
       return S_OK;
     }
 

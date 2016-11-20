@@ -3,12 +3,12 @@
 //#define LOG_SD
 //#define DEBUG
 
-#if  defined(LOG_SD) || defined(LOG_SERIAL)
-#define LOG_ENABLED
-#endif
+#define BUILD_AIR
+//#define BUILD_SHELF_TWO
 
-//#define BUILD_AIR
-#define BUILD_SHELF_ONE
+#ifdef LOG_ENABLED
+#include <SD.h>
+#endif
 
 #include <SPI.h>
 #include <Ethernet2.h>
@@ -18,10 +18,6 @@
 #include <Wire.h>
 #include "log.h"
 #include "pinMap.h"
-
-#ifdef LOG_ENABLED
-#include <SD.h>
-#endif
 
 #ifdef BUILD_AIR
 #include "MG811.h"
@@ -36,11 +32,11 @@
 
 #include "Sensor.h"
 
-#ifdef DEBUG
-unsigned long period = 5000;
-#else
+//#ifdef DEBUG
+//unsigned long period = 5000;
+//#else
 unsigned long period = 30000;
-#endif
+//#endif
 
 unsigned long lastmeasuredTime = 0;
 const unsigned long resetTime = 600000;//1 hour
@@ -77,25 +73,22 @@ const unsigned int sensorCount = 5;
 EthernetClient client;
 #endif
 
-//#ifdef LOG_ENABLED
 Logger logWriter(CS_PIN);
-//#endif
 
 void setup()
 {
-
 #ifdef DEBUG
   logWriter.init();
 #else
   Serial.begin(9600);
 #endif
-  delay(2000);
-#ifndef DEBUG
+
+  delay(5000);
   wdt_enable(WDTO_1S);
-#endif
+  
 #ifdef BUILD_AIR
   sensors[0] = new SensorMG811(MGH11_ANALOG_PIN, MGH11_DIGITAL_PIN, 1);//co2
-  SensorSI7021_H* airSensor = new SensorSI7021_H(SI7021_I2C_ADDRESS, 2);;
+  SensorSI7021_H* airSensor = new SensorSI7021_H(SI7021_I2C_ADDRESS, 2);
   sensors[1] = airSensor;//air t
   sensors[2] = new SensorSI7021_T(airSensor, 3);// air hum
 #endif
@@ -128,7 +121,6 @@ void setup()
 
   for (int i = 0; i < sensorCount; i++)
   {
-
     wdt_reset();
     sensors[i]->init();
   }
@@ -137,21 +129,12 @@ void setup()
 
   Ethernet.begin(mac, ip, google_dns);
   lastmeasuredTime = millis();
-
+  
 }
 
 void loop()
 {
   wdt_reset();
-#ifndef DEBUG
-  //reset whole board
-  //reset to restore registers state
-  /*if (millis() > resetTime || failCount > maxFailCount)
-    {
-    resetEth();
-    while (1) {};
-    }*/
-#endif
   //wait for cicle
   if (millis() - lastmeasuredTime <= period)
   {
@@ -163,7 +146,6 @@ void loop()
 
   for (int i = 0; i < sensorCount; i++)
   {
-    //logWriter.logData("s");
     char buf[25];
     wdt_reset();
     Sensor *s = sensors[i];
@@ -182,7 +164,7 @@ void loop()
   sendDataToServer(data);
 #endif
   resetEth();
-  while (1) {};
+  while (1);
 }
 
 
